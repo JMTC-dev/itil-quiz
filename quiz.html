@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ITIL 4 Foundation Quiz Game - 80 Questions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f3f4f6; /* Tailwind gray-100 */
+      }
+      .quiz-container {
+        max-width: 700px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background-color: white;
+        border-radius: 0.75rem; /* Tailwind rounded-xl */
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Tailwind shadow-lg */
+      }
+      .option-button {
+        transition: background-color 0.3s ease, transform 0.1s ease;
+      }
+      .option-button:hover {
+        background-color: #e5e7eb; /* Tailwind gray-200 */
+      }
+      .option-button:active {
+        transform: scale(0.98);
+      }
+      .correct-answer {
+        background-color: #10b981 !important; /* Tailwind green-500 */
+        color: white !important;
+        border-color: #059669 !important; /* Tailwind green-700 */
+      }
+      .incorrect-answer {
+        background-color: #ef4444 !important; /* Tailwind red-500 */
+        color: white !important;
+        border-color: #dc2626 !important; /* Tailwind red-600 */
+      }
+      .selected-answer {
+        border-width: 2px;
+        border-color: #3b82f6; /* Tailwind blue-500 */
+      }
+      .progress-bar-fill {
+        transition: width 0.5s ease-in-out;
+      }
+      /* Custom animation for feedback appearance */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .feedback-animation {
+        animation: fadeIn 0.5s ease-out;
+      }
+    </style>
+  </head>
+  <body class="flex flex-col items-center justify-center min-h-screen p-4">
+    <div id="start-screen" class="quiz-container text-center">
+      <h1 class="text-3xl font-bold text-gray-800 mb-6">
+        ITIL 4 Foundation Quiz
+      </h1>
+      <p class="text-gray-600 mb-8">
+        Test your knowledge with 80 questions from ITIL 4 Foundation sample
+        papers. <br />Rationales are provided after each answer to aid learning.
+      </p>
+      <button
+        id="start-quiz-btn"
+        class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg text-lg shadow-md hover:shadow-lg transition-all duration-150 ease-in-out"
+      >
+        Start Quiz
+      </button>
+    </div>
+
+    <div id="quiz-screen" class="quiz-container hidden">
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-2">
+          <p id="question-counter" class="text-sm text-gray-500">
+            Question 1 of 80
+          </p>
+          <p id="current-score" class="text-sm font-semibold text-blue-600">
+            Score: 0
+          </p>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div
+            id="progress-bar"
+            class="bg-blue-500 h-2.5 rounded-full progress-bar-fill"
+            style="width: 0%"
+          ></div>
+        </div>
+      </div>
+
+      <h2
+        id="question-text"
+        class="text-xl font-semibold text-gray-700 mb-6 min-h-[80px] sm:min-h-[60px]"
+      >
+        Question text will load here...
+      </h2>
+
+      <div id="options-container" class="space-y-3 mb-6"></div>
+
+      <div
+        id="feedback-container"
+        class="p-4 rounded-lg min-h-[120px] sm:min-h-[100px] feedback-animation"
+        style="display: none"
+      >
+        <p id="feedback-text" class="text-md font-medium mb-2"></p>
+        <p id="rationale-text" class="text-sm text-gray-700"></p>
+      </div>
+
+      <button
+        id="next-question-btn"
+        class="w-full mt-6 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-150 ease-in-out"
+        style="display: none"
+      >
+        Next Question
+      </button>
+    </div>
+
+    <div id="results-screen" class="quiz-container text-center hidden">
+      <h1 class="text-3xl font-bold text-gray-800 mb-4">Quiz Complete!</h1>
+      <p class="text-xl text-gray-700 mb-2">Your Final Score:</p>
+      <p id="final-score" class="text-4xl font-bold text-blue-600 mb-8">
+        0 / 0
+      </p>
+      <p id="result-message" class="text-gray-600 mb-8"></p>
+      <button
+        id="restart-quiz-btn"
+        class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg text-lg shadow-md hover:shadow-lg transition-all duration-150 ease-in-out"
+      >
+        Restart Quiz
+      </button>
+    </div>
+
+    <script>
+      // --- Quiz Data ---
+      // Extracted from the ITIL 4 Foundation Sample Exams PDF (Sample Paper 1 & 2)
+      const rawQuizData = [
+        // Sample Paper 1 Questions (1-40)
+        {
+          question:
+            "Which practice is responsible for moving components to live environments?",
+          options: [
+            "Change enablement",
+            "Release management",
+            "IT asset management",
+            "Deployment management",
+          ],
+          answer: "Deployment management",
+          rationale:
+            "The purpose of the deployment management practice is to move new or changed hardware, software, documentation, processes, or any other component to live environments. (Ref 5.3.1)",
+        },
+        {
+          question:
+            "Which practice includes the classification and ownership of queries and requests from users?",
+          options: [
+            "Service desk",
+            "Incident management",
+            "Change enablement",
+            "Service level management",
+          ],
+          answer: "Service desk",
+          rationale:
+            "Service desks provide a clear path for users to report issues, queries, and requests, and have them acknowledged, classified, owned, and actioned. (Ref 5.2.14)",
+        },
+        {
+          question:
+            "Which practice identifies metrics that reflect the customer's experience of a service?",
+          options: [
+            "Continual improvement",
+            "Service desk",
+            "Service level management",
+            "Problem management",
+          ],
+          answer: "Service level management",
+          rationale:
+            "Service level management identifies metrics and measures that are a truthful reflection of the customer's actual experience and level of satisfaction with the whole service. (Ref 5.2.15.1)",
+        },
+        {
+          question: "What is the PRIMARY use of a change schedule?",
+          options: [
+            "To support 'incident management' and improvement planning",
+            "To manage emergency changes",
+            "To plan changes and help avoid conflicts",
+            "To manage standard changes",
+          ],
+          answer: "To plan changes and help avoid conflicts",
+          rationale:
+            "The change schedule is used to help plan changes, assist in communication, avoid conflicts, and assign resources. (Ref 5.2.4)",
+        },
+        {
+          question:
+            "Which service management dimension is focused on activities and how these are coordinated?",
+          options: [
+            "Organizations and people",
+            "Information and technology",
+            "Partners and suppliers",
+            "Value streams and processes",
+          ],
+          answer: "Value streams and processes",
+          rationale:
+            "The 'value streams and processes' dimension focuses on what activities the organization undertakes and how they are organized, as well as how the organization ensures that it is enabling value creation for all stakeholders efficiently and effectively. (Ref 3.4)",
+        },
+        {
+          question:
+            "How does categorization of incidents assist the 'incident management' practice?",
+          options: [
+            "It helps direct the incident to the correct support area",
+            "It determines the priority assigned to the incident",
+            "It ensures that incidents are resolved in timescales agreed with the customer",
+            "It determines how the service provider is perceived",
+          ],
+          answer: "It helps direct the incident to the correct support area",
+          rationale:
+            "More complex incidents will usually be escalated to a support team for resolution. Typically, the routing is based on the incident category, which should help to identify the correct team. (Ref 5.2.5)",
+        },
+        {
+          question:
+            "Identify the missing word(s) in the following sentence. A service is a means of enabling value co-creation by facilitating [?] that customers want to achieve.",
+          options: ["the warranty", "outcomes", "the utility", "outputs"],
+          answer: "outcomes",
+          rationale:
+            "A service is a means of enabling value co-creation by facilitating outcomes that customers want to achieve, without the customer having to manage specific costs and risks. (Ref 2.3.1)",
+        },
+        {
+          question:
+            "Which is a recommendation of the 'continual improvement' practice?",
+          options: [
+            "There should at least be a small team dedicated to leading 'continual improvement efforts",
+            "All improvements should be managed as multi-phase projects",
+            "'Continual improvement' should be isolated from other practices.",
+            "External suppliers should be excluded from improvement initiatives",
+          ],
+          answer:
+            "There should at least be a small team dedicated to leading 'continual improvement efforts",
+          rationale:
+            "Although everyone should contribute in some way, there should at least be a small team dedicated full-time to leading continual improvement efforts and advocating the practice across the organization. (Ref 5.1.2)",
+        },
+        {
+          question:
+            "Which is a potential benefit of using an IT service management tool to support the 'incident management' practice?",
+          options: [
+            "It may ensure that the cause of incidents is identified within agreed times.",
+            "It may provide automated matching of incidents to problems or known errors",
+            "It may ensure that supplier contracts are aligned with the needs of the service provider",
+            "It may provide automated resolution and closure of complex incidents",
+          ],
+          answer:
+            "It may provide automated matching of incidents to problems or known errors",
+          rationale:
+            "Modern IT service management tools can provide automated matching of incidents to other incidents, problems or known errors. (Ref 5.2.5)",
+        },
+        {
+          question: "Which role submits service requests?",
+          options: [
+            "The user, or their authorized representative",
+            "The customer, or their authorized representative",
+            "The sponsor, or their authorized representative",
+            "The supplier, or their authorized representative",
+          ],
+          answer: "The user, or their authorized representative",
+          rationale:
+            "The purpose of the service request management practice is to support the agreed quality of a service by handling all pre-defined, user-initiated service requests... and a service request is defined as 'a request from a user or a user's authorized representative that initiates a service action'. (Ref 5.2.16)",
+        },
+        {
+          question:
+            "Which practice provides a single point of contact for users?",
+          options: [
+            "Incident management",
+            "Change enablement",
+            "Service desk",
+            "Service request management",
+          ],
+          answer: "Service desk",
+          rationale:
+            "The purpose of the service desk practice is to capture demand for incident resolution and service requests. It should also be the entry point and single point of contact for the service provider with all of its users. (Ref 5.2.14)",
+        },
+        {
+          question:
+            "Which guiding principle recommends that the four dimensions of service management are considered?",
+          options: [
+            "Think and work holistically",
+            "Progress iteratively with feedback",
+            "Focus on value",
+            "Keep it simple and practical",
+          ],
+          answer: "Think and work holistically",
+          rationale:
+            "The 'think and work holistically' guiding principle advises that all aspects of an organization are considered when providing value in the form of services. This includes all four dimensions of service management. (Ref 4.3.5)",
+        },
+        {
+          question:
+            "Which would be supported by the 'service request management' practice?",
+          options: [
+            "A request to authorize a change that could have an effect on a service",
+            "A request from a user for something which is a normal part of service delivery",
+            "A request to restore service after a service interruption",
+            "A request to investigate the cause of multiple related incidents",
+          ],
+          answer:
+            "A request from a user for something which is a normal part of service delivery",
+          rationale:
+            "A service request is 'a request from a user or a user's authorized representative that initiates a service action which has been agreed as a normal part of service delivery.' (Ref 5.2.16)",
+        },
+        {
+          question:
+            "Which practice is the responsibility of everyone in the organization?",
+          options: [
+            "Service level management",
+            "Change enablement",
+            "Problem management",
+            "Continual improvement",
+          ],
+          answer: "Continual improvement",
+          rationale:
+            "Continual improvement is everyone's responsibility and The commitment to and practice of continual improvement must be embedded into every fibre of the organization. (Ref 5.1.2)",
+        },
+        {
+          question:
+            "Identify the missing word in the following sentence. The purpose of the 'information security management' practice is to [?] the organization's information.",
+          options: ["store", "provide", "audit", "protect"],
+          answer: "protect",
+          rationale:
+            "The purpose of the 'information security management' practice is to protect the information needed by the organization to conduct its business. (Ref 5.1.3)",
+        },
+        {
+          question:
+            "Which guiding principle recommends collecting data before deciding what can be re-used?",
+          options: [
+            "Focus on value",
+            "Start where you are",
+            "Keep it simple and practical",
+            "Progress iteratively with feedback",
+          ],
+          answer: "Start where you are",
+          rationale:
+            "The 'start where you are' guiding principle recommends that 'Services and methods already in place should be measured and/or observed directly to properly understand their current state and what can be reused from them... Getting data from the source helps to avoid assumptions...'. (Ref 4.3.2)",
+        },
+        {
+          question:
+            "Which is NOT usually included as part of incident management?",
+          options: [
+            "Scripts for collecting initial information about incidents",
+            "Formalized procedures for logging incidents",
+            "Detailed procedures for the diagnosis of incidents",
+            "The use of specialized knowledge for complicated incidents",
+          ],
+          answer: "Detailed procedures for the diagnosis of incidents",
+          rationale:
+            "'This process does NOT usually include detailed procedures for how to diagnose, investigate, and resolve incidents.' (Ref 5.2.5)",
+        },
+        {
+          question: "Which describes the nature of the guiding principles?",
+          options: [
+            "Guiding principles can guide an organization in all circumstances",
+            "Each guiding principle mandates specific actions and decisions",
+            "An organization will select and adopt only one of the seven guiding principles",
+            "Guiding principles describe the processes that all organizations must adopt",
+          ],
+          answer:
+            "Guiding principles can guide an organization in all circumstances",
+          rationale:
+            "A guiding principle is defined as 'a recommendation that can guide an organization in all circumstances' and will guide organizations when adopting service management. (Ref 4.3)",
+        },
+        {
+          question: "Which statement about a change authority is CORRECT?",
+          options: [
+            "A single change authority should be assigned to authorize all types of change and change models",
+            "A change authority should be assigned for each type of change and change model",
+            "Normal changes are pre-authorized and do not need a change authority",
+            "Emergency changes can be implemented without authorization from a change authority",
+          ],
+          answer:
+            "A change authority should be assigned for each type of change and change model",
+          rationale:
+            "'It is essential that the correct change authority is assigned to each type of change to ensure that change enablement is both efficient and effective.' For normal changes, 'change models based on the type of change determine the roles for assessment and authorization'. (Ref 5.2.4)",
+        },
+        {
+          question:
+            "Which practice has the purpose of making new and changed services and features available for use?",
+          options: [
+            "Change enablement",
+            "Service request management",
+            "Release management",
+            "Deployment management",
+          ],
+          answer: "Release management",
+          rationale:
+            "The purpose of the 'release management' practice is to make new and changed services and features available for use. (Ref 5.2.9)",
+        },
+        {
+          question:
+            "Which value chain activity ensures people understand the organization's vision?",
+          options: ["Improve", "Plan", "Deliver and support", "Obtain/build"],
+          answer: "Plan",
+          rationale:
+            "The purpose of the 'plan' value chain activity is 'to ensure a shared understanding of the vision, current status, and improvement direction for all four dimensions and all products and services across the organization.' (Ref 4.5.1)",
+        },
+        {
+          question:
+            "Which statement about the value chain activities is CORRECT?",
+          options: [
+            "Every practice belongs to a specific value chain activity",
+            "A specific combination of value chain activities and practices forms a service relationship",
+            "Service value chain activities form a single workflow that enables value creation",
+            "Each value chain activity contributes to the value chain by transforming specific inputs into outputs",
+          ],
+          answer:
+            "Each value chain activity contributes to the value chain by transforming specific inputs into outputs",
+          rationale:
+            "'Each activity transforms inputs into outputs. These inputs can be demand from outside the value chain or outputs of other activities. All the activities are interconnected, with each activity receiving and providing triggers for further action.' (Ref 4.5)",
+        },
+        {
+          question:
+            "What is the purpose of the 'supplier management' practice?",
+          options: [
+            "To ensure that the organization's suppliers and their performance are managed appropriately to support the seamless provision of quality products and services",
+            "To align the organization's practices and services with changing business needs through the ongoing identification and improvement of services",
+            "To ensure that the organization's suppliers and their performance are managed appropriately at strategic and tactical levels through coordinated marketing, selling, and delivery activities",
+            "To ensure that accurate and reliable information about the configuration of suppliers' services is available when and where it is needed",
+          ],
+          answer:
+            "To ensure that the organization's suppliers and their performance are managed appropriately to support the seamless provision of quality products and services",
+          rationale:
+            "The purpose of the 'supplier management' practice is 'to ensure that the organization's suppliers and their performance are managed appropriately to support the seamless provision of quality products and services'. (Ref 5.1.13)",
+        },
+        {
+          question:
+            "What are the two types of cost that a service consumer should evaluate?",
+          options: [
+            "The price of the service, and the cost of creating the service",
+            "The costs removed by the service, and the costs imposed by the service",
+            "The cost of provisioning the service, and the cost of improving the service",
+            "The cost of software, and the cost of hardware",
+          ],
+          answer:
+            "The costs removed by the service, and the costs imposed by the service",
+          rationale:
+            "From the service consumer's perspective, there are two types of costs involved in service relationships: 1. Costs removed from the service consumer by the service (a part of the value proposition)... 2. Costs imposed on the consumer by the service (the costs of service consumption). (Ref 2.5.2)",
+        },
+        {
+          question: "Which is a purpose of the 'service desk' practice?",
+          options: [
+            "To reduce the likelihood and impact of incidents by identifying actual and potential causes of incidents",
+            "To maximize the number of successful IT changes by ensuring risks are properly assessed",
+            "To capture demand for incident resolution and service requests",
+            "To set clear business-based targets for service performance",
+          ],
+          answer:
+            "To capture demand for incident resolution and service requests",
+          rationale:
+            "The purpose of the 'service desk' practice is 'to capture demand for incident resolution and service requests. It should also be the entry point and single point of contact for the service provider with all of its users.' (Ref 5.2.14)",
+        },
+        {
+          question:
+            "How should an organization adopt continual improvement methods?",
+          options: [
+            "Use a new method for each improvement the organization handles",
+            "Select a few key methods for the types of improvement that the organization handles",
+            "Build the capability to use as many improvement methods as possible",
+            "Select a single method for all improvements that the organization handles",
+          ],
+          answer:
+            "Select a few key methods for the types of improvement that the organization handles",
+          rationale:
+            "The guidance states 'It is a good idea to select a few key methods that are appropriate to the types of improvement the organization typically handles and to cultivate those methods'. (Ref 5.1.2)",
+        },
+        {
+          question: "Which ITIL concept describes governance?",
+          options: [
+            "The seven guiding principles",
+            "The four dimensions of service management",
+            "The service value chain",
+            "The service value system",
+          ],
+          answer: "The service value system",
+          rationale:
+            "The components of the service value system are 'guiding principles', 'governance', 'service value chain', 'practices', and 'continual improvement'. (Ref 4.1)",
+        },
+        {
+          question: "Which is a recommendation of the 'service desk' practice?",
+          options: [
+            "Service desks should avoid the use of automation",
+            "Service desks should be highly technical",
+            "Service desks should understand the wider organization",
+            "Service desks should be a physical team in a single fixed location",
+          ],
+          answer: "Service desks should understand the wider organization",
+          rationale:
+            "'Another key aspect of a good service desk is its practical understanding of the wider organization, the business processes, and the users.' (Ref 5.2.14)",
+        },
+        {
+          question:
+            "Which guiding principle recommends organizing work into smaller, manageable sections that can be executed and completed in a timely manner?",
+          options: [
+            "Focus on value",
+            "Start where you are",
+            "Progress iteratively with feedback",
+            "Collaborate and promote visibility",
+          ],
+          answer: "Progress iteratively with feedback",
+          rationale:
+            "The description of the 'progress iteratively with feedback' guiding principle says 'by organizing work into smaller, manageable sections that can be executed and completed in a timely manner, the focus on each effort will be sharper and easier to maintain.' (Ref 4.3.3)",
+        },
+        {
+          question: "What is a standard change?",
+          options: [
+            "A change that is well understood, fully documented and pre-authorized",
+            "A change that needs to be assessed, authorized, and scheduled by a change authority",
+            "A change that doesn't need a risk assessment because it is required to resolve an incident",
+            "A change that is assessed, authorized, and scheduled as part of 'continual improvement'",
+          ],
+          answer:
+            "A change that is well understood, fully documented and pre-authorized",
+          rationale:
+            "'These are low-risk, pre-authorized changes that are well understood and fully documented, and can be implemented without needing additional authorization.' (Ref 5.2.4)",
+        },
+        {
+          question:
+            "What happens if a workaround becomes the permanent way of dealing with a problem that cannot be resolved cost-effectively?",
+          options: [
+            "A change request is submitted to change enablement",
+            "Problem management restores the service as soon as possible",
+            "The problem remains in the known error status",
+            "The problem record is deleted",
+          ],
+          answer: "The problem remains in the known error status",
+          rationale:
+            "'...the problem remains in the known error status, and the documented workaround is applied should related incidents occur'. (Ref 5.2.8)",
+        },
+        {
+          question: "What is the definition of change?",
+          options: [
+            "To add, modify or remove anything that could have a direct or indirect effect on services",
+            "To ensure that accurate and reliable information about the configuration of services is available",
+            "To make new and changed services and features available for use",
+            "To move new or changed hardware, software, or any other component to live environments",
+          ],
+          answer:
+            "To add, modify or remove anything that could have a direct or indirect effect on services",
+          rationale:
+            "A change is the 'addition, modification, or removal of anything that could have a direct or indirect effect on services'. (Ref 5.2.4)",
+        },
+        {
+          question: "What is the definition of an event?",
+          options: [
+            "Any change of state that has significance for the management of a service or other configuration item",
+            "Any component that needs to be managed in order to deliver an IT service",
+            "An unplanned interruption to a service or reduction in the quality of a service",
+            "Any financially valuable component that can contribute to the delivery of an IT product or service",
+          ],
+          answer:
+            "Any change of state that has significance for the management of a service or other configuration item",
+          rationale:
+            "'An event can be defined as any change of state that has significance for the management of a service or other configuration item (CI)'. (Ref 5.2.7)",
+        },
+        {
+          question: "Which describes outcomes?",
+          options: [
+            "Tangible or intangible deliverables",
+            "Functionality offered by a product or service",
+            "Results desired by a stakeholder",
+            "Configuration of an organization's resources",
+          ],
+          answer: "Results desired by a stakeholder",
+          rationale:
+            "An outcome is 'a result for a stakeholder enabled by one or more outputs'. (Ref 2.5.1)",
+        },
+        {
+          question:
+            "Which is NOT a key focus of the 'information and technology' dimension?",
+          options: [
+            "Security and compliance",
+            "Communication systems and knowledge bases",
+            "Workflow management and inventory systems",
+            "Roles and responsibilities",
+          ],
+          answer: "Roles and responsibilities",
+          rationale:
+            "'The organizations and people dimension of a service covers roles and responsibilities, formal organizational structures, culture, and required staffing and competencies...' (Ref 3.1) The other options are focuses of the 'information and technology' dimension. (Ref 3.2)",
+        },
+        {
+          question:
+            "Which practices are typically involved in the implementation of a problem resolution? 1. Continual improvement 2. Service request management 3. Service level management 4. Change enablement",
+          options: ["1 and 2", "2 and 3", "3 and 4", "1 and 4"],
+          answer: "1 and 4",
+          rationale:
+            "Problem management activities can identify improvement opportunities... Solutions can in some cases be treated as improvement opportunities... (Continual Improvement). Error control also includes identification of potential permanent solutions which may result in a change request for implementation of a solution (Change Enablement). (Ref 5.2.8)",
+        },
+        {
+          question:
+            "Which is a key consideration for the guiding principle 'keep it simple and practical'?",
+          options: [
+            "Try to create a solution for every exception",
+            "Understand how each element contributes to value creation",
+            "Ignore the conflicting objectives of different stakeholders",
+            "Start with a complex solution, then simplify",
+          ],
+          answer: "Understand how each element contributes to value creation",
+          rationale:
+            "The 'keep it simple and practical' guiding principle states: 'When analyzing a practice, process, service, metric, or other improvement target, always ask whether it contributes to value creation.' (Ref 4.3.6.1)",
+        },
+        {
+          question:
+            "What should be done first when applying the 'focus on value' guiding principle?",
+          options: [
+            "Identify the outcomes that the service facilitates",
+            "Identify all suppliers and partners involved in the service",
+            "Determine who the service consumer is in each situation",
+            "Determine the cost of providing the service",
+          ],
+          answer: "Determine who the service consumer is in each situation",
+          rationale:
+            "'The first step in focusing on value is knowing who is being served. In each situation the service provider must, therefore, determine who the service consumer is'. (Ref 4.3.1.1)",
+        },
+        {
+          question:
+            "A service provider describes a package that includes a laptop with software, licenses, and support. What is this package an example of?",
+          options: ["Value", "An outcome", "Warranty", "A service offering"],
+          answer: "A service offering",
+          rationale:
+            "Service providers define combinations of goods, access to resources and service actions, to address the needs of different consumer groups. These combinations are called service offerings. (Ref 2.3.2)",
+        },
+        {
+          question: "What is the definition of warranty?",
+          options: [
+            "A tangible or intangible deliverable that is produced by carrying out an activity",
+            "The assurance that a product or service will meet agreed requirements",
+            "A possible event that could cause harm or loss, or make it more difficult to achieve objectives",
+            "The functionality offered by a product or service to meet a particular need",
+          ],
+          answer:
+            "The assurance that a product or service will meet agreed requirements",
+          rationale:
+            "Warranty is 'assurance that a product or service will meet agreed requirements.' (Ref 2.5.4)",
+        },
+        // Sample Paper 2 Questions (41-80)
+        {
+          question:
+            "What is the effect of increased automation on the 'service desk' practice?",
+          options: [
+            "Greater ability to focus on customer experience when personal contact is needed",
+            "Decrease in self-service incident logging and resolution",
+            "Increased ability to focus on fixing technology instead of supporting people",
+            "Elimination of the need to escalate incidents to support teams.",
+          ],
+          answer:
+            "Greater ability to focus on customer experience when personal contact is needed",
+          rationale:
+            "With increased automation... The impact on service desks is reduced phone contact, less low-level work, and a greater ability to focus on excellent CX when personal contact is needed. (Ref 5.2.14)",
+        },
+        {
+          question:
+            "Which term describes the functionality offered by a service?",
+          options: ["Cost", "Utility", "Warranty", "Risk"],
+          answer: "Utility",
+          rationale:
+            "Utility is 'The functionality offered by a product or service.' (Ref 2.5.4)",
+        },
+        {
+          question:
+            "Which is the purpose of the 'monitoring and event management' practice?",
+          options: [
+            "To ensure that accurate and reliable information about the configuration of services is available when and where it is needed",
+            "To systematically observe services and service components, and record and report selected changes of state",
+            "To protect the information needed by the organization to conduct its business",
+            "To minimize the negative impact of incidents by restoring normal service operation as quickly as possible",
+          ],
+          answer:
+            "To systematically observe services and service components, and record and report selected changes of state",
+          rationale:
+            "The purpose of the 'monitoring and event management' practice is to systematically observe services and service components, and record and report selected changes of state identified as events. (Ref 5.2.7)",
+        },
+        {
+          question:
+            "What should all 'continual improvement' decisions be based on?",
+          options: [
+            "Details of how services are measured",
+            "Accurate and carefully analyzed data",
+            "An up-to-date balanced scorecard",
+            "A recent maturity assessment",
+          ],
+          answer: "Accurate and carefully analyzed data",
+          rationale:
+            "Accurate data, carefully analyzed and understood, is the foundation of fact-based decision-making for improvement. (Ref 5.1.2)",
+        },
+        {
+          question:
+            "How do all value chain activities transform inputs to outputs?",
+          options: [
+            "By determining service demand",
+            "By using a combination of practices",
+            "By using a single functional team",
+            "By implementing process automation",
+          ],
+          answer: "By using a combination of practices",
+          rationale:
+            "To convert inputs into outputs, the value chain activities use different combinations of ITIL practices. (Ref 4.5)",
+        },
+        {
+          question:
+            "How does customer engagement contribute to the 'service level management' practice? 1. It captures information that metrics can be based on 2. It ensures the organization meets defined service levels 3. It defines the workflows for service requests 4. It supports progress discussions",
+          options: ["1 and 2", "2 and 3", "3 and 4", "1 and 4"],
+          answer: "1 and 4",
+          rationale:
+            "Customer engagement: This involves initial listening, discovery, and information capture on which to base metrics, measurement, and ongoing progress discussions. (Ref 5.2.15)",
+        },
+        {
+          question: "What is the starting point for optimization?",
+          options: [
+            "Securing stakeholder engagement",
+            "Understanding the vision and objectives of the organization",
+            "Determining where the most positive impact would be",
+            "Standardizing practices and services",
+          ],
+          answer: "Understanding the vision and objectives of the organization",
+          rationale:
+            "The first step of the principle 'optimize and automate' is: 'Understand and agree the context in which the proposed optimization exists. This includes agreeing the overall vision and objectives of the organization.' (Ref 4.3.7.1)",
+        },
+        {
+          question:
+            "Identify the missing words in the following sentence. The purpose of the [?] is to ensure that the organization continually co-creates value with all stakeholders in line with the organization's objectives.",
+          options: [
+            "'focus on value' guiding principle",
+            "four dimensions of service management",
+            "service value system",
+            "'service request management' practice",
+          ],
+          answer: "service value system",
+          rationale:
+            "The purpose of the SVS is to ensure that the organization continually co-creates value with all stakeholders through the use and management of products and services. (Ref 4.1)",
+        },
+        {
+          question:
+            "Which practice provides support for managing feedback, compliments and complaints from users?",
+          options: [
+            "Change enablement",
+            "Service request management",
+            "Problem management",
+            "Incident management",
+          ],
+          answer: "Service request management",
+          rationale:
+            "Each service request may include one or more of the following: ... feedback, compliments, and complaints (for example, complaints about a new interface or compliments to a support team). (Ref 5.2.16)",
+        },
+        {
+          question:
+            "Which joint activity performed by a service provider and service consumer ensures continual value co-creation?",
+          options: [
+            "Service provision",
+            "Service consumption",
+            "Service offering",
+            "Service relationship management",
+          ],
+          answer: "Service relationship management",
+          rationale:
+            "Service relationship management is 'Joint activities performed by a service provider and a service consumer to ensure continual value co-creation based on agreed and available service offerings'. (Ref 2.4.1)",
+        },
+        {
+          question:
+            "Which practice may involve the initiation of disaster recovery?",
+          options: [
+            "Incident management",
+            "Service request management",
+            "Service level management",
+            "IT asset management",
+          ],
+          answer: "Incident management",
+          rationale:
+            "In some extreme cases, disaster recovery plans may be invoked to resolve an incident. (Ref 5.2.5)",
+        },
+        {
+          question:
+            "What type of change is MOST likely to be managed by the 'service request management' practice?",
+          options: [
+            "A normal change",
+            "An emergency change",
+            "A standard change",
+            "An application change",
+          ],
+          answer: "A standard change",
+          rationale:
+            "Fulfilment of service requests may include changes to services or their components; usually these are standard changes. Standard changes are often initiated as service requests. (Ref 5.2.16, 5.2.4)",
+        },
+        {
+          question:
+            "Which guiding principle emphasizes the need to understand the flow of work in progress, identify bottlenecks, and uncover waste?",
+          options: [
+            "Focus on value",
+            "Collaborate and promote visibility",
+            "Think and work holistically",
+            "Keep it simple and practical",
+          ],
+          answer: "Collaborate and promote visibility",
+          rationale:
+            "'Collaborate and promote' visibility states 'Insufficient visibility of work leads to poor decision-making... To avoid this, the organization needs to perform such critical analysis activities as: understanding the flow of work in progress; identifying bottlenecks, as well as excess capacity; and uncovering waste'. (Ref 4.3.4.3)",
+        },
+        {
+          question:
+            "What is a means of enabling value co-creation by facilitating outcomes that customers want to achieve?",
+          options: [
+            "A service",
+            "An output",
+            "A practice",
+            "Continual improvement",
+          ],
+          answer: "A service",
+          rationale:
+            "A service is 'A means of enabling value co-creation by facilitating outcomes that customers want to achieve, without the customer having to manage specific costs and risks.' (Ref 2.3.1)",
+        },
+        {
+          question: "Which statement about change authorization is CORRECT?",
+          options: [
+            "A change authority should be assigned to each type of change and change model",
+            "Centralizing change authorization to a single person is the most effective means of authorization",
+            "The authorization of normal changes should be expedited to ensure they can be implemented quickly",
+            "Standard changes are high risk and should be authorized by the highest level of change authority",
+          ],
+          answer:
+            "A change authority should be assigned to each type of change and change model",
+          rationale:
+            "It is essential that the correct change authority is assigned to each type of change to ensure that change enablement is both efficient and effective. (Ref 5.2.4)",
+        },
+        {
+          question:
+            "Which dimension of service management considers governance, management, and communication?",
+          options: [
+            "Organizations and people",
+            "Information and technology",
+            "Partners and suppliers",
+            "Value streams and processes",
+          ],
+          answer: "Organizations and people",
+          rationale:
+            "It is important to ensure that the way an organization is structured and managed, as well as its roles, responsibilities, and systems of authority and communication, is well defined and supports its overall strategy and operating model. (Ref 3.1)",
+        },
+        {
+          question:
+            "Identify the missing word in the following sentence. A known error is a problem that has been [?] and has not been resolved.",
+          options: ["logged", "analyzed", "escalated", "closed"],
+          answer: "analyzed",
+          rationale:
+            "A known error is 'A problem that has been analyzed but has not been resolved'. (Ref 5.2.8)",
+        },
+        {
+          question:
+            "Which statement about known errors and problems is CORRECT?",
+          options: [
+            "Known error is the status assigned to a problem after it has been analyzed",
+            "A known error is the cause of one or more problems.",
+            "Known errors cause vulnerabilities, problems cause incidents",
+            "Known errors are managed by technical staff, problems are managed by service management staff",
+          ],
+          answer:
+            "Known error is the status assigned to a problem after it has been analyzed",
+          rationale:
+            "Known errors are problems where initial analysis has been completed... the problem remains in the known error status, and the documented workaround is applied. (Ref 5.2.8)",
+        },
+        {
+          question:
+            "What does the 'service request management' practice depend on for maximum efficiency?",
+          options: [
+            "Compliments and complaints",
+            "Self-service tools",
+            "Processes and procedures",
+            "Incident management",
+          ],
+          answer: "Processes and procedures",
+          rationale:
+            "Service request management is dependent upon well-designed processes and procedures, which are operationalized through tracking and automation tools to maximize the efficiency of the practice. (Ref 5.2.16)",
+        },
+        {
+          question:
+            "Which statement about the 'service desk' practice is CORRECT?",
+          options: [
+            "It provides a link with stakeholders at strategic and tactical levels",
+            "It carries out change assessment and authorization",
+            "It investigates the cause of incidents",
+            "It needs a practical understanding of the business processes",
+          ],
+          answer:
+            "It needs a practical understanding of the business processes",
+          rationale:
+            "Another key aspect of a good service desk is its practical understanding of the wider organization, the business processes, and the users. (Ref 5.2.14)",
+        },
+        {
+          question:
+            "Which practice ensures that accurate and reliable information is available about configuration items and the relationships between them?",
+          options: [
+            "Service configuration management",
+            "Service desk",
+            "IT asset management",
+            "Monitoring and event management",
+          ],
+          answer: "Service configuration management",
+          rationale:
+            "The purpose of the 'service configuration management' practice is to ensure that accurate and reliable information about the configuration of services, and the CIs that support them, is available when and where it is needed. This includes information on how CIs are configured and the relationships between them. (Ref 5.2.11)",
+        },
+        {
+          question:
+            "Which practice has a purpose that includes restoring normal service operation as quickly as possible?",
+          options: [
+            "Supplier management",
+            "Deployment management",
+            "Problem management",
+            "Incident management",
+          ],
+          answer: "Incident management",
+          rationale:
+            "The purpose of the 'incident management' practice is to minimize the negative impact of incidents by restoring normal service operation as quickly as possible. (Ref 5.2.5)",
+        },
+        {
+          question:
+            "Identify the missing word in the following sentence. A customer is the role that defines the requirements for a service and takes responsibility for the [?] of service consumption.",
+          options: ["outputs", "outcomes", "costs", "risks"],
+          answer: "outcomes",
+          rationale:
+            "Customer: The role that defines the requirements for a service and takes responsibility for the outcomes of service consumption. (Ref 2.2.2)",
+        },
+        {
+          question:
+            "Which guiding principle describes the importance of doing something, instead of spending a long time analyzing different options?",
+          options: [
+            "Optimize and automate",
+            "Start where you are",
+            "Focus on value",
+            "Progress iteratively with feedback",
+          ],
+          answer: "Progress iteratively with feedback",
+          rationale:
+            "'Progress iteratively with feedback' recommends comprehend 'the whole, but do something: Sometimes the greatest enemy to progressing iteratively is the desire to understand and account for everything. This can lead to what has sometimes been called 'analysis paralysis', in which so much time is spent analyzing the situation that nothing ever gets done about it.' (Ref 4.3.3.3)",
+        },
+        {
+          question: "What should be done for every problem?",
+          options: [
+            "It should be diagnosed to identify possible solutions",
+            "It should be prioritized based on its potential impact and probability",
+            "It should be resolved so that it can be closed",
+            "It should have a workaround to reduce the impact",
+          ],
+          answer:
+            "It should be prioritized based on its potential impact and probability",
+          rationale:
+            "Problems are prioritized for analysis based on the risk that they pose, and are managed as risks based on their potential impact and probability. (Ref 5.2.8)",
+        },
+        {
+          question:
+            "How should an organization include third-party suppliers in the continual improvement of services?",
+          options: [
+            "Ensure suppliers include details of their approach to service improvement in contracts",
+            "Require evidence that the supplier uses agile development methods",
+            "Require evidence that the supplier implements all improvements using project management practices",
+            "Ensure that all supplier problem management activities result in improvements",
+          ],
+          answer:
+            "Ensure suppliers include details of their approach to service improvement in contracts",
+          rationale:
+            "When contracting for a supplier's service, the contract should include details of how they will measure, report on, and improve their services over the life of the contract. (Ref 5.1.2)",
+        },
+        {
+          question:
+            "What considerations influence the supplier strategy of an organization?",
+          options: [
+            "Contracts and agreements",
+            "Type of cooperation with suppliers",
+            "Corporate culture of the organization",
+            "Level of formality",
+          ],
+          answer: "Corporate culture of the organization",
+          rationale:
+            "Corporate culture: some organizations have a historical preference for one approach over another. Long-standing cultural bias is difficult to change without compelling reasons. (Ref 3.3)",
+        },
+        {
+          question: "What is a problem?",
+          options: [
+            "An addition or modification that could have an effect on services.",
+            "Any change of state that has significance for the management of a configuration item",
+            "A cause or potential cause of one or more incidents",
+            "An unplanned reduction in the quality of a service",
+          ],
+          answer: "A cause or potential cause of one or more incidents",
+          rationale:
+            "A problem is 'a cause, or potential cause, of one or more incidents.' (Ref 5.2.8)",
+        },
+        {
+          question:
+            "What is the purpose of the 'relationship management' practice?",
+          options: [
+            "To align the organization's practices and services with changing business needs",
+            "To establish and nurture the links between the organization and its stakeholders at strategic and tactical levels",
+            "To reduce the likelihood and impact of incidents by identifying actual and potential causes of incidents, and managing workarounds and known errors",
+            "To minimize the negative impact of incidents by restoring normal service operation as quickly as possible",
+          ],
+          answer:
+            "To establish and nurture the links between the organization and its stakeholders at strategic and tactical levels",
+          rationale:
+            "The purpose of the 'relationship management' practice is to establish and nurture the links between the organization and its stakeholders at strategic and tactical levels. It includes the identification, analysis, monitoring, and continual improvement of relationships with and between stakeholders. (Ref 5.1.9)",
+        },
+        {
+          question:
+            "Which is intended to help an organization adopt and adapt ITIL guidance?",
+          options: [
+            "The four dimensions of service management",
+            "The guiding principles",
+            "The service value chain",
+            "Practices",
+          ],
+          answer: "The guiding principles",
+          rationale:
+            "The guiding principles can 'guide organizations in their work as they adopt a service management approach and adapt ITIL guidance to their own specific needs and circumstances.' (Ref 4.3)",
+        },
+        {
+          question: "What is an output?",
+          options: [
+            "A change of state that has significance for the management of a configuration item",
+            "A possible event that could cause harm or loss",
+            "A result for a stakeholder",
+            "Something created by carrying out an activity",
+          ],
+          answer: "Something created by carrying out an activity",
+          rationale:
+            "An output is 'A tangible or intangible deliverable of an activity'. (Ref 2.5.1)",
+        },
+        {
+          question:
+            "What is the reason for using a balanced bundle of service metrics?",
+          options: [
+            "It reduces the number of metrics that need to be collected",
+            "It reports each service element separately",
+            "It provides an outcome-based view of services",
+            "It facilitates the automatic collection of metrics",
+          ],
+          answer: "It provides an outcome-based view of services",
+          rationale:
+            "They should relate to defined outcomes and not simply operational metrics. This can be achieved with balanced bundles of metrics. (Ref 5.2.15.1)",
+        },
+        {
+          question: "Why should incidents be prioritized?",
+          options: [
+            "To help automated matching of incidents to problems or known errors",
+            "To identify which support team the incident should be escalated to",
+            "To ensure that incidents with the highest business impact are resolved first",
+            "To encourage a high level of collaboration within and between teams",
+          ],
+          answer:
+            "To ensure that incidents with the highest business impact are resolved first",
+          rationale:
+            "Incidents are prioritized based on an agreed classification to ensure that incidents with the highest business impact are resolved first. (Ref 5.2.5)",
+        },
+        {
+          question:
+            "Which practice has a purpose that includes helping the organization to maximize value, control costs and manage risks?",
+          options: [
+            "Relationship management",
+            "IT asset management",
+            "Release management",
+            "Service desk",
+          ],
+          answer: "IT asset management",
+          rationale:
+            "The purpose of the 'IT asset management' practice is to plan and manage the full lifecycle of all IT assets, to help the organization: maximize value, control costs, manage risks. (Ref 5.2.6)",
+        },
+        {
+          question: "Why should service desk staff detect recurring issues?",
+          options: [
+            "To help identify problems",
+            "To escalate incidents to the correct support team",
+            "To ensure effective handling of service requests",
+            "To engage the correct change authority",
+          ],
+          answer: "To help identify problems",
+          rationale:
+            "Problem identification activities identify and log problems. These include:... detection of duplicate and recurring issues by users, service desk, and technical support staff. (Ref 5.2.8)",
+        },
+        {
+          question:
+            "Which value chain activity communicates the current status of all four dimensions of service management?",
+          options: ["Improve", "Engage", "Obtain/build", "Plan"],
+          answer: "Plan",
+          rationale:
+            "The purpose of the 'plan' value chain activity is to ensure a shared understanding of the vision, current status, and improvement direction for all four dimensions and all products and services across the organization. (Ref 4.5.1)",
+        },
+        {
+          question:
+            "Which guiding principle is PRIMARILY concerned with consumer's revenue and growth?",
+          options: [
+            "Keep it simple and practical",
+            "Optimize and automate",
+            "Progress iteratively with feedback",
+            "Focus on value",
+          ],
+          answer: "Focus on value",
+          rationale:
+            "This section is mostly focused on the creation of value for service consumers... This value may come in various forms, such as revenue, customer loyalty, lower cost, or growth opportunities. (Ref 4.3.1)",
+        },
+        {
+          question:
+            "Which practice provides visibility of the organization's services by capturing and reporting on service performance?",
+          options: [
+            "Service desk",
+            "Service level management",
+            "Service request management",
+            "Service configuration management",
+          ],
+          answer: "Service level management",
+          rationale:
+            "Service level management provides the end-to-end visibility of the organization's services. To achieve this, service level management.... captures and reports on service issues, including performance against defined service levels. (Ref 5.2.15 - Note: PDF rationale incorrectly cites 5.2.14 for SLM functionality)",
+        },
+        {
+          question: "Which is the BEST example of an emergency change?",
+          options: [
+            "The implementation of a planned new release of a software application",
+            "A low-risk computer upgrade implemented as a service request",
+            "The implementation of a security patch to a critical software application",
+            "A scheduled major hardware and software implementation",
+          ],
+          answer:
+            "The implementation of a security patch to a critical software application",
+          rationale:
+            "Emergency changes are 'Changes that must be implemented as soon as possible; for example, to resolve an incident or implement a security patch.' (Ref 5.2.4)",
+        },
+        {
+          question:
+            "Which guiding principle recommends assessing the current state and deciding what can be reused?",
+          options: [
+            "Focus on value",
+            "Start where you are",
+            "Collaborate and promote visibility",
+            "Progress iteratively with feedback",
+          ],
+          answer: "Start where you are",
+          rationale:
+            "The guiding principle 'start where you are' advises 'Having a proper understanding of the current state of services and methods is important to selecting which elements to re-use, alter, or build upon.' (Ref 4.3.2.3)",
+        },
+      ];
+
+      let quizData = []; // This will hold the shuffled questions
+      let currentQuestionIndex = 0;
+      let score = 0;
+
+      // --- DOM Elements ---
+      const startScreen = document.getElementById("start-screen");
+      const quizScreen = document.getElementById("quiz-screen");
+      const resultsScreen = document.getElementById("results-screen");
+
+      const startQuizBtn = document.getElementById("start-quiz-btn");
+      const nextQuestionBtn = document.getElementById("next-question-btn");
+      const restartQuizBtn = document.getElementById("restart-quiz-btn");
+
+      const questionCounter = document.getElementById("question-counter");
+      const currentScoreDisplay = document.getElementById("current-score");
+      const progressBar = document.getElementById("progress-bar");
+      const questionText = document.getElementById("question-text");
+      const optionsContainer = document.getElementById("options-container");
+      const feedbackContainer = document.getElementById("feedback-container");
+      const feedbackText = document.getElementById("feedback-text");
+      const rationaleText = document.getElementById("rationale-text");
+
+      const finalScoreDisplay = document.getElementById("final-score");
+      const resultMessage = document.getElementById("result-message");
+
+      // --- Utility Functions ---
+      // Fisher-Yates shuffle algorithm
+      function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      }
+
+      // --- Quiz Logic ---
+      function initializeQuiz() {
+        // Shuffle the entire rawQuizData array for question order randomization
+        quizData = shuffleArray([...rawQuizData]);
+        currentQuestionIndex = 0;
+        score = 0;
+        startScreen.classList.add("hidden");
+        resultsScreen.classList.add("hidden");
+        quizScreen.classList.remove("hidden");
+        feedbackContainer.style.display = "none";
+        nextQuestionBtn.style.display = "none";
+        // Update total question count on start screen if needed, or ensure it's generic
+        document.querySelector(
+          "#start-screen p"
+        ).innerHTML = `Test your knowledge with ${rawQuizData.length} questions from ITIL 4 Foundation sample papers. <br>Rationales are provided after each answer to aid learning.`;
+        loadQuestion();
+      }
+
+      function loadQuestion() {
+        if (currentQuestionIndex < quizData.length) {
+          const currentQuestion = quizData[currentQuestionIndex];
+
+          // Update progress and score display
+          questionCounter.textContent = `Question ${
+            currentQuestionIndex + 1
+          } of ${quizData.length}`;
+          currentScoreDisplay.textContent = `Score: ${score}`;
+          const progressPercentage =
+            (currentQuestionIndex / quizData.length) * 100;
+          progressBar.style.width = `${progressPercentage}%`;
+
+          questionText.textContent = currentQuestion.question;
+          optionsContainer.innerHTML = ""; // Clear previous options
+
+          // Shuffle options for the current question
+          const shuffledOptions = shuffleArray([...currentQuestion.options]);
+
+          shuffledOptions.forEach((option) => {
+            const button = document.createElement("button");
+            button.textContent = option;
+            // Added more padding for better touch targets and readability
+            button.classList.add(
+              "w-full",
+              "text-left",
+              "p-4",
+              "border",
+              "border-gray-300",
+              "rounded-lg",
+              "hover:bg-gray-100",
+              "focus:outline-none",
+              "focus:ring-2",
+              "focus:ring-blue-400",
+              "option-button"
+            );
+            button.onclick = () => selectAnswer(option, button);
+            optionsContainer.appendChild(button);
+          });
+
+          feedbackContainer.style.display = "none";
+          nextQuestionBtn.style.display = "none";
+        } else {
+          showResults();
+        }
+      }
+
+      function selectAnswer(selectedOptionText, selectedButton) {
+        const currentQuestion = quizData[currentQuestionIndex];
+        const isCorrect = selectedOptionText === currentQuestion.answer;
+
+        // Disable all option buttons after an answer is selected
+        Array.from(optionsContainer.children).forEach((btn) => {
+          btn.disabled = true;
+          // Highlight the correct answer regardless of user's choice
+          if (btn.textContent === currentQuestion.answer) {
+            btn.classList.add("correct-answer");
+          }
+          // Mark the user's selected button
+          if (btn === selectedButton) {
+            btn.classList.add("selected-answer"); // Keeps a visual cue of what was selected
+            if (!isCorrect) {
+              // Only add incorrect-answer class if it's actually wrong
+              btn.classList.add("incorrect-answer");
+            }
+          }
+        });
+
+        feedbackContainer.style.display = "block";
+        // Clear previous feedback styling to ensure correct color indication
+        feedbackContainer.classList.remove(
+          "bg-green-100",
+          "text-green-700",
+          "border-green-400",
+          "bg-red-100",
+          "text-red-700",
+          "border-red-400"
+        );
+        feedbackText.classList.remove("text-green-700", "text-red-700");
+
+        if (isCorrect) {
+          score++;
+          feedbackText.textContent = "Correct!";
+          feedbackContainer.classList.add(
+            "bg-green-100",
+            "text-green-700",
+            "border",
+            "border-green-400"
+          );
+          feedbackText.classList.add("text-green-700");
+        } else {
+          feedbackText.textContent = "Incorrect!";
+          feedbackContainer.classList.add(
+            "bg-red-100",
+            "text-red-700",
+            "border",
+            "border-red-400"
+          );
+          feedbackText.classList.add("text-red-700");
+        }
+
+        rationaleText.innerHTML = `<strong>Rationale:</strong> ${currentQuestion.rationale}`;
+        currentScoreDisplay.textContent = `Score: ${score}`; // Update score immediately
+        nextQuestionBtn.style.display = "block";
+      }
+
+      function handleNextQuestion() {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < quizData.length) {
+          // Update progress bar for the next question loading
+          const progressPercentage =
+            (currentQuestionIndex / quizData.length) * 100;
+          progressBar.style.width = `${progressPercentage}%`;
+          loadQuestion();
+        } else {
+          progressBar.style.width = `100%`; // Fill bar at the end
+          showResults();
+        }
+      }
+
+      function showResults() {
+        quizScreen.classList.add("hidden");
+        resultsScreen.classList.remove("hidden");
+        const percentage = (score / quizData.length) * 100;
+
+        finalScoreDisplay.textContent = `${score} / ${quizData.length} (${percentage})`;
+
+        let message = "";
+        if (percentage >= 80) {
+          message =
+            "Excellent work! You have a strong grasp of ITIL 4 concepts.";
+        } else if (percentage >= 65) {
+          // Adjusted to ITIL pass mark
+          message =
+            "Good job! You've passed. Keep reviewing to solidify your knowledge.";
+        } else {
+          message =
+            "Keep practicing! Review the rationales to improve your understanding. You'll get there!";
+        }
+        resultMessage.textContent = message;
+      }
+
+      // --- Event Listeners ---
+      startQuizBtn.addEventListener("click", initializeQuiz);
+      nextQuestionBtn.addEventListener("click", handleNextQuestion);
+      restartQuizBtn.addEventListener("click", () => {
+        // Re-shuffle questions for a new attempt
+        initializeQuiz();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ITIL 4 Foundation Quiz Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f0f4f8; /* Light blue-gray background */
+        color: #1e293b; /* Dark slate text */
+      }
+      .quiz-container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px; /* Reduced padding for smaller screens */
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+      @media (min-width: 640px) {
+        /* sm breakpoint */
+        .quiz-container {
+          padding: 30px; /* More padding on larger screens */
+        }
+      }
+      .question-header {
+        border-bottom: 2px solid #e2e8f0; /* Lighter border */
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+      }
+      .question-text {
+        font-size: 1.25rem; /* 20px */
+        font-weight: 600;
+        margin-bottom: 20px;
+        line-height: 1.6;
+        white-space: pre-line; /* To respect newlines in question text */
+      }
+      .option-button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        border: 2px solid #cbd5e1; /* Default border */
+        border-radius: 8px;
+        background-color: #f8fafc; /* Lighter option background */
+        color: #334155; /* Darker text for options */
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+      .option-button:hover {
+        border-color: #60a5fa; /* Blue border on hover */
+        background-color: #eff6ff; /* Lighter blue on hover */
+      }
+      .option-button.selected {
+        border-color: #3b82f6; /* Darker blue for selected */
+        background-color: #dbeafe; /* Light blue for selected */
+      }
+      .option-button.correct {
+        background-color: #dcfce7; /* Light green for correct */
+        border-color: #22c55e; /* Green border */
+        color: #166534; /* Dark green text */
+      }
+      .option-button.incorrect {
+        background-color: #fee2e2; /* Light red for incorrect */
+        border-color: #ef4444; /* Red border */
+        color: #991b1b; /* Dark red text */
+      }
+      .feedback {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        line-height: 1.7;
+      }
+      .feedback.correct {
+        background-color: #dcfce7;
+        color: #166534;
+        border: 1px solid #86efac;
+      }
+      .feedback.incorrect {
+        background-color: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+      }
+      .rationale-title {
+        font-weight: 600;
+        margin-top: 10px;
+        margin-bottom: 5px;
+        color: #475569; /* Slate color for title */
+      }
+      .rationale-text {
+        font-size: 0.9rem;
+        color: #475569; /* Slate color for text */
+        white-space: pre-line; /* To respect newlines in rationale text */
+      }
+      .progress-bar-container {
+        width: 100%;
+        background-color: #e5e7eb; /* Gray background for progress bar */
+        border-radius: 9999px; /* Pill shape */
+        margin-bottom: 20px;
+        height: 12px; /* Thinner progress bar */
+      }
+      .progress-bar {
+        height: 100%;
+        background-color: #3b82f6; /* Blue progress */
+        border-radius: 9999px;
+        transition: width 0.5s ease-in-out;
+      }
+      .nav-button {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: background-color 0.3s ease;
+        cursor: pointer;
+        background-color: #3b82f6; /* Blue button */
+        color: white;
+      }
+      .nav-button:hover {
+        background-color: #2563eb; /* Darker blue on hover */
+      }
+      .nav-button:disabled {
+        background-color: #9ca3af; /* Gray when disabled */
+        cursor: not-allowed;
+      }
+      .score-text {
+        font-size: 1.1rem;
+        font-weight: 500;
+      }
+      .final-score-container {
+        text-align: center;
+        padding: 40px 20px;
+      }
+      .final-score-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e3a8a; /* Dark blue for title */
+        margin-bottom: 15px;
+      }
+      .final-score-text {
+        font-size: 1.25rem;
+        margin-bottom: 25px;
+      }
+      .restart-button {
+        background-color: #10b981; /* Green for restart */
+        color: white;
+      }
+      .restart-button:hover {
+        background-color: #059669; /* Darker green */
+      }
+
+      .question-enter {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeIn 0.5s forwards;
+      }
+      @keyframes fadeIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="quiz-container">
+      <div id="quiz-header" class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl sm:text-3xl font-bold text-blue-700">
+          ITIL 4 Quiz
+        </h1>
+        <div id="score" class="score-text text-blue-600">Score: 0 / 0</div>
+      </div>
+
+      <div id="progress-bar-container" class="progress-bar-container">
+        <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+      </div>
+
+      <div id="question-area" class="question-enter"></div>
+
+      <div id="feedback-area" class="mt-4"></div>
+
+      <div id="navigation-area" class="mt-6 flex justify-end">
+        <button id="next-question-btn" class="nav-button">Next Question</button>
+      </div>
+
+      <div id="results-area" class="hidden final-score-container">
+        <h2 id="final-score-title" class="final-score-title">
+          Quiz Completed!
+        </h2>
+        <p id="final-score-text" class="final-score-text">
+          Your final score is 0 out of 0.
+        </p>
+        <p id="final-message" class="mb-6 text-lg"></p>
+        <button id="restart-quiz-btn" class="nav-button restart-button">
+          Restart Quiz
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // --- Sound Effects ---
+      const clickSound = new Tone.Synth({
+        oscillator: { type: "sine" },
+        envelope: { attack: 0.005, decay: 0.1, sustain: 0.01, release: 0.1 },
+      }).toDestination();
+
+      const correctSound = new Tone.Synth({
+        oscillator: { type: "triangle" },
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0.05, release: 0.2 },
+      }).toDestination();
+
+      const incorrectSound = new Tone.Synth({
+        oscillator: { type: "square" },
+        envelope: { attack: 0.01, decay: 0.3, sustain: 0.01, release: 0.2 },
+      }).toDestination();
+
+      const finishSound = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: "amsine" },
+        envelope: { attack: 0.01, decay: 0.5, sustain: 0.1, release: 0.5 },
+      }).toDestination();
+
+      // --- Original Quiz Data (All 40 Questions) ---
+      const quizData = [
+        {
+          // Question 1
+          question:
+            "What is the effect of increased automation on the 'service desk' practice?",
+          options: [
+            "Greater ability to focus on customer experience when personal contact is needed",
+            "Decrease in self-service incident logging and resolution",
+            "Increased ability to focus on fixing technology instead of supporting people",
+            "Elimination of the need to escalate incidents to support teams",
+          ],
+          correctAnswer: 0,
+          rationale:
+            'A. Correct. "With increased automation... The impact on service desks is reduced phone contact, less low-level work, and a greater ability to focus on excellent CX when personal contact is needed". Ref 5.2.14',
+        },
+        {
+          // Question 2
+          question:
+            "Which term describes the functionality offered by a service?",
+          options: ["Cost", "Utility", "Warranty", "Risk"],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. Utility is "The functionality offered by a product or service." Ref 2.5.4',
+        },
+        {
+          // Question 3
+          question:
+            "Which is the purpose of the 'monitoring and event management' practice?",
+          options: [
+            "To ensure that accurate and reliable information about the configuration of services is available when and where it is needed",
+            "To systematically observe services and service components, and record and report selected changes of state",
+            "To protect the information needed by the organization to conduct its business",
+            "To minimize the negative impact of incidents by restoring normal service operation as quickly as possible",
+          ],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. "The purpose of the monitoring and event management practice is to systematically observe services and service components, and record and report selected changes of state identified as events". Ref 5.2.7',
+        },
+        {
+          // Question 4
+          question:
+            "What should all 'continual improvement' decisions be based on?",
+          options: [
+            "Details of how services are measured",
+            "Accurate and carefully analyzed data",
+            "An up-to-date balanced scorecard",
+            "A recent maturity assessment",
+          ],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. "Accurate data, carefully analyzed and understood, is the foundation of fact-based decision-making for improvement." Ref 5.1.2',
+        },
+        {
+          // Question 5
+          question:
+            "How do all value chain activities transform inputs to outputs?",
+          options: [
+            "By determining service demand",
+            "By using a combination of practices",
+            "By using a single functional team",
+            "By implementing process automation",
+          ],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. "To convert inputs into outputs, the value chain activities use different combinations of ITIL practices." Ref 4.5',
+        },
+        {
+          // Question 6
+          question:
+            "How does customer engagement contribute to the 'service level management' practice?\n1. It captures information that metrics can be based on\n2. It ensures the organization meets defined service levels\n3. It defines the workflows for service requests\n4. It supports progress discussions",
+          options: ["1 and 2", "2 and 3", "3 and 4", "1 and 4"],
+          correctAnswer: 3,
+          rationale:
+            'D. Correct. (1) (4) "Customer engagement: This involves initial listening, discovery, and information capture on which to base metrics, measurement, and ongoing progress discussions." Ref 5.2.15',
+        },
+        {
+          // Question 7
+          question: "What is the starting point for optimization?",
+          options: [
+            "Securing stakeholder engagement",
+            "Understanding the vision and objectives of the organization",
+            "Determining where the most positive impact would be",
+            "Standardizing practices and services",
+          ],
+          correctAnswer: 1,
+          rationale:
+            "B. Correct. The first step of the principle 'optimize and automate' is: \"Understand and agree the context in which the proposed optimization exists. This includes agreeing the overall vision and objectives of the organization.\" Ref 4.3.7.1",
+        },
+        {
+          // Question 8
+          question:
+            "Identify the missing words in the following sentence.\nThe purpose of the [?] is to ensure that the organization continually co-creates value with all stakeholders in line with the organization's objectives.",
+          options: [
+            "'focus on value' guiding principle",
+            "four dimensions of service management",
+            "service value system",
+            "'service request management' practice",
+          ],
+          correctAnswer: 2,
+          rationale:
+            'C. Correct. "The purpose of the SVS is to ensure that the organization continually co-creates value with all stakeholders through the use and management of products and services." Ref 4.1',
+        },
+        {
+          // Question 9
+          question:
+            "Which practice provides support for managing feedback, compliments and complaints from users?",
+          options: [
+            "Change enablement",
+            "Service request management",
+            "Problem management",
+            "Incident management",
+          ],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. "The purpose of the service request management practice is to support the agreed quality of a service by handling all pre-defined, user-initiated service requests in an effective and user-friendly manner," and "Each service request may include one or more of the following: ... feedback, compliments, and complaints (for example, complaints about a new interface or compliments to a support team)." Ref 5.2.16',
+        },
+        {
+          // Question 10
+          question:
+            "Which joint activity performed by a service provider and service consumer ensures continual value co-creation?",
+          options: [
+            "Service provision",
+            "Service consumption",
+            "Service offering",
+            "Service relationship management",
+          ],
+          correctAnswer: 3,
+          rationale:
+            'D. Correct. Service relationship management is "Joint activities performed by a service provider and a service consumer to ensure continual value co-creation based on agreed and available service offerings". Ref 2.4.1',
+        },
+        {
+          // Question 11
+          question:
+            "Which practice may involve the initiation of disaster recovery?",
+          options: [
+            "Incident management",
+            "Service request management",
+            "Service level management",
+            "IT asset management",
+          ],
+          correctAnswer: 0,
+          rationale:
+            'A. Correct. "In some extreme cases, disaster recovery plans may be invoked to resolve an incident." Ref 5.2.5',
+        },
+        {
+          // Question 12
+          question:
+            "What type of change is MOST likely to be managed by the 'service request management' practice?",
+          options: [
+            "A normal change",
+            "An emergency change",
+            "A standard change",
+            "An application change",
+          ],
+          correctAnswer: 2,
+          rationale:
+            'C. Correct. "Fulfilment of service requests may include changes to services or their components; usually these are standard changes." and "Standard changes: These are low-risk, pre-authorized changes that are well understood and fully documented, and can be implemented without needing additional authorization. They are often initiated as service requests". Ref 5.2.16, 5.2.4',
+        },
+        {
+          // Question 13
+          question:
+            "Which guiding principle emphasizes the need to understand the flow of work in progress, identify bottlenecks, and uncover waste?",
+          options: [
+            "Focus on value",
+            "Collaborate and promote visibility",
+            "Think and work holistically",
+            "Keep it simple and practical",
+          ],
+          correctAnswer: 1,
+          rationale:
+            "B. Correct. 'Collaborate and promote' visibility states \"Insufficient visibility of work leads to poor decision-making... To avoid this, the organization needs to perform such critical analysis activities as: understanding the flow of work in progress; identifying bottlenecks, as well as excess capacity; and uncovering waste\". Ref 4.3.4.3",
+        },
+        {
+          // Question 14
+          question:
+            "What is a means of enabling value co-creation by facilitating outcomes that customers want to achieve?",
+          options: [
+            "A service",
+            "An output",
+            "A practice",
+            "Continual improvement",
+          ],
+          correctAnswer: 0,
+          rationale:
+            'A. Correct. A service is "A means of enabling value co-creation by facilitating outcomes that customers want to achieve, without the customer having to manage specific costs and risks." Ref 2.3.1',
+        },
+        {
+          // Question 15
+          question: "Which statement about change authorization is CORRECT?",
+          options: [
+            "A change authority should be assigned to each type of change and change model",
+            "Centralizing change authorization to a single person is the most effective means of authorization",
+            "The authorization of normal changes should be expedited to ensure they can be implemented quickly",
+            "Standard changes are high risk and should be authorized by the highest level of change authority",
+          ],
+          correctAnswer: 0,
+          rationale:
+            'A. Correct. "It is essential that the correct change authority is assigned to each type of change to ensure that change enablement is both efficient and effective." Ref 5.2.4',
+        },
+        {
+          // Question 16
+          question:
+            "Which dimension of service management considers governance, management, and communication?",
+          options: [
+            "Organizations and people",
+            "Information and technology",
+            "Partners and suppliers",
+            "Value streams and processes",
+          ],
+          correctAnswer: 0,
+          rationale:
+            'A. Correct. "It is important to ensure that the way an organization is structured and managed, as well as its roles, responsibilities, and systems of authority and communication, is well defined and supports its overall strategy and operating model." Ref 3.1',
+        },
+        {
+          // Question 17
+          question:
+            "Identify the missing word in the following sentence.\nA known error is a problem that has been [?] and has not been resolved.",
+          options: ["logged", "analyzed", "escalated", "closed"],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. A known error is "A problem that has been analyzed but has not been resolved". Ref 5.2.8',
+        },
+        {
+          // Question 18
+          question:
+            "Which statement about known errors and problems is CORRECT?",
+          options: [
+            "Known error is the status assigned to a problem after it has been analyzed",
+            "A known error is the cause of one or more problems",
+            "Known errors cause vulnerabilities, problems cause incidents",
+            "Known errors are managed by technical staff, problems are managed by service management staff",
+          ],
+          correctAnswer: 0,
+          rationale:
+            'A. Correct. Known errors "are problems where initial analysis has been completed; it usually means that faulty components have been identified... the problem remains in the known error status, and the documented workaround is applied". Ref 5.2.8',
+        },
+        {
+          // Question 19
+          question:
+            "What does the 'service request management' practice depend on for maximum efficiency?",
+          options: [
+            "Compliments and complaints",
+            "Self-service tools",
+            "Processes and procedures",
+            "Incident management",
+          ],
+          correctAnswer: 2,
+          rationale:
+            'C. Correct. "Service request management is dependent upon well-designed processes and procedures, which are operationalized through tracking and automation tools to maximize the efficiency of the practice." Ref 5.2.16',
+        },
+        {
+          // Question 20
+          question:
+            "Which statement about the 'service desk' practice is CORRECT?",
+          options: [
+            "It provides a link with stakeholders at strategic and tactical levels",
+            "It carries out change assessment and authorization",
+            "It investigates the cause of incidents",
+            "It needs a practical understanding of the business processes",
+          ],
+          correctAnswer: 3,
+          rationale:
+            'D. Correct. "Another key aspect of a good service desk is its practical understanding of the wider organization, the business processes, and the users." Ref 5.2.14',
+        },
+        {
+          // Question 21
+          question:
+            "Which practice ensures that accurate and reliable information is available about configuration items and the relationships between them?",
+          options: [
+            "Service configuration management",
+            "Service desk",
+            "IT asset management",
+            "Monitoring and event management",
+          ],
+          correctAnswer: 0,
+          rationale:
+            'A. Correct. "The purpose of the service configuration management practice is to ensure that accurate and reliable information about the configuration of services, and the CIs that support them, is available when and where it is needed. This includes information on how CIs are configured and the relationships between them". Ref 5.2.11',
+        },
+        {
+          // Question 22
+          question:
+            "Which practice has a purpose that includes restoring normal service operation as quickly as possible?",
+          options: [
+            "Supplier management",
+            "Deployment management",
+            "Problem management",
+            "Incident management",
+          ],
+          correctAnswer: 3,
+          rationale:
+            'D. Correct. "The purpose of the incident management practice is to minimize the negative impact of incidents by restoring normal service operation as quickly as possible." Ref 5.2.5',
+        },
+        {
+          // Question 23
+          question:
+            "Identify the missing word in the following sentence.\nA customer is the role that defines the requirements for a service and takes responsibility for the [?] of service consumption.",
+          options: ["outputs", "outcomes", "costs", "risks"],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. "Customer: The role that defines the requirements for a service and takes responsibility for the outcomes of service consumption." Ref 2.2.2',
+        },
+        {
+          // Question 24
+          question:
+            "Which guiding principle describes the importance of doing something, instead of spending a long time analyzing different options?",
+          options: [
+            "Optimize and automate",
+            "Start where you are",
+            "Focus on value",
+            "Progress iteratively with feedback",
+          ],
+          correctAnswer: 3,
+          rationale:
+            "D. Correct. 'Progress iteratively with feedback' recommends comprehending \"the whole, but do something: Sometimes the greatest enemy to progressing iteratively is the desire to understand and account for everything. This can lead to what has sometimes been called 'analysis paralysis', in which so much time is spent analyzing the situation that nothing ever gets done about it.\" Ref 4.3.3.3",
+        },
+        {
+          // Question 25
+          question: "What should be done for every problem?",
+          options: [
+            "It should be diagnosed to identify possible solutions",
+            "It should be prioritized based on its potential impact and probability",
+            "It should be resolved so that it can be closed",
+            "It should have a workaround to reduce the impact",
+          ],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. "Problems are prioritized for analysis based on the risk that they pose, and are managed as risks based on their potential impact and probability." Ref 5.2.8',
+        },
+        {
+          // Question 26
+          question:
+            "How should an organization include third-party suppliers in the continual improvement of services?",
+          options: [
+            "Ensure suppliers include details of\ntheir approach to service improvement in contracts",
+            "Require evidence that the supplier uses agile development methods",
+            "Require evidence that the supplier implements all improvements using project management practices",
+            "Ensure that all supplier problem management activities result in improvements",
+          ],
+          correctAnswer: 0,
+          rationale:
+            'A. Correct. "When contracting for a supplier\'s service, the contract should include details of how they will measure, report on, and improve their services over the life of the contract." Ref 5.1.2',
+        },
+        {
+          // Question 27
+          question:
+            "What considerations influence the supplier strategy of an organization?",
+          options: [
+            "Contracts and agreements",
+            "Type of cooperation with suppliers",
+            "Corporate culture of the organization",
+            "Level of formality",
+          ],
+          correctAnswer: 2,
+          rationale:
+            'C. Correct. "Corporate culture: some organizations have a historical preference for one approach over another. Long-standing cultural bias is difficult to change without compelling reasons." Ref 3.3',
+        },
+        {
+          // Question 28
+          question: "What is a problem?",
+          options: [
+            "An addition or modification that could have an effect on services",
+            "Any change of state that has significance for the management of a configuration item",
+            "A cause or potential cause of one or more incidents",
+            "An unplanned reduction in the quality of a service",
+          ],
+          correctAnswer: 2,
+          rationale:
+            'C. Correct. A problem is "a cause, or potential cause, of one or more incidents." Ref 5.2.8',
+        },
+        {
+          // Question 29
+          question:
+            "What is the purpose of the 'relationship management' practice?",
+          options: [
+            "To align the organization's practices and services with changing business needs",
+            "To establish and nurture the links between the organization and its stakeholders at strategic and tactical levels",
+            "To reduce the likelihood and impact of incidents by identifying actual and potential causes of incidents, and managing workarounds and known errors",
+            "To minimize the negative impact of incidents by restoring normal service operation as quickly as possible",
+          ],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. "The purpose of the relationship management practice is to establish and nurture the links between the organization and its stakeholders at strategic and tactical levels. It includes the identification, analysis, monitoring, and continual improvement of relationships with and between stakeholders." Ref 5.1.9',
+        },
+        {
+          // Question 30
+          question:
+            "Which is intended to help an organization adopt and adapt ITIL guidance?",
+          options: [
+            "The four dimensions of service management",
+            "The guiding principles",
+            "The service value chain",
+            "Practices",
+          ],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. The guiding principles can "guide organizations in their work as they adopt a service management approach and adapt ITIL guidance to their own specific needs and circumstances." Ref 4.3',
+        },
+        {
+          // Question 31
+          question: "What is an output?",
+          options: [
+            "A change of state that has significance for the management of a configuration item",
+            "A possible event that could cause harm or loss",
+            "A result for a stakeholder",
+            "Something created by carrying out an activity",
+          ],
+          correctAnswer: 3,
+          rationale:
+            'D. Correct. An output is "A tangible or intangible deliverable of an activity". Ref 2.5.1',
+        },
+        {
+          // Question 32
+          question:
+            "What is the reason for using a balanced bundle of service metrics?",
+          options: [
+            "It reduces the number of metrics that need to be collected",
+            "It reports each service element separately",
+            "It provides an outcome-based view of services",
+            "It facilitates the automatic collection of metrics",
+          ],
+          correctAnswer: 2,
+          rationale:
+            'C. Correct. "They should relate to defined outcomes and not simply operational metrics. This can be achieved with balanced bundles of metrics." Ref 5.2.15.1',
+        },
+        {
+          // Question 33
+          question: "Why should incidents be prioritized?",
+          options: [
+            "To help automated matching of incidents to problems or known errors",
+            "To identify which support team the incident should be escalated to",
+            "To ensure that incidents with the highest business impact are resolved first",
+            "To encourage a high level of collaboration within and between teams",
+          ],
+          correctAnswer: 2,
+          rationale:
+            'C. Correct. "Incidents are prioritized based on an agreed classification to ensure that incidents with the highest business impact are resolved first." Ref 5.2.5',
+        },
+        {
+          // Question 34
+          question:
+            "Which practice has a purpose that includes helping the organization to maximize value, control costs and manage risks?",
+          options: [
+            "Relationship management",
+            "IT asset management",
+            "Release management",
+            "Service desk",
+          ],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. "The purpose of the IT asset management practice is to plan and manage the full lifecycle of all IT assets, to help the organization: maximize value, control costs, manage risks." Ref 5.2.6',
+        },
+        {
+          // Question 35
+          question: "Why should service desk staff detect recurring issues?",
+          options: [
+            "To help identify problems",
+            "To escalate incidents to the correct support team",
+            "To ensure effective handling of service requests",
+            "To engage the correct change authority",
+          ],
+          correctAnswer: 0,
+          rationale:
+            'A. Correct. "Problem identification activities identify and log problems. These include:... detection of duplicate and recurring issues by users, service desk, and technical support staff." Ref 5.2.8',
+        },
+        {
+          // Question 36
+          question:
+            "Which value chain activity communicates the current status of all four dimensions of service management?",
+          options: ["Improve", "Engage", "Obtain/build", "Plan"],
+          correctAnswer: 3,
+          rationale:
+            'D. Correct. "The purpose of the plan value chain activity is to ensure a shared understanding of the vision, current status, and improvement direction for all four dimensions and all products and services across the organization." Ref 4.5.1',
+        },
+        {
+          // Question 37
+          question:
+            "Which guiding principle is PRIMARILY concerned with consumer's revenue and growth?",
+          options: [
+            "Keep it simple and practical",
+            "Optimize and automate",
+            "Progress iteratively with feedback",
+            "Focus on value",
+          ],
+          correctAnswer: 3,
+          rationale:
+            'D. Correct. "This section is mostly focused on the creation of value for service consumers... This value may come in various forms, such as revenue, customer loyalty, lower cost, or growth opportunities." Ref 4.3.1',
+        },
+        {
+          // Question 38
+          question:
+            "Which practice provides visibility of the organization's services by capturing and reporting on service performance?",
+          options: [
+            "Service desk",
+            "Service level management",
+            "Service request management",
+            "Service configuration management",
+          ],
+          correctAnswer: 1,
+          rationale:
+            'B. Correct. "Service level management provides the end-to-end visibility of the organization\'s services. To achieve this, service level management:... captures and reports on service issues, including performance against defined service levels." Ref 5.2.15',
+        },
+        {
+          // Question 39
+          question: "Which is the BEST example of an emergency change?",
+          options: [
+            "The implementation of a planned new release of a software application",
+            "A low-risk computer upgrade implemented as a service request",
+            "The implementation of a security patch to a critical software application",
+            "A scheduled major hardware and software implementation",
+          ],
+          correctAnswer: 2,
+          rationale:
+            'C. Correct. Emergency changes are "Changes that must be implemented as soon as possible; for example, to resolve an incident or implement a security patch." Ref 5.2.4',
+        },
+        {
+          // Question 40
+          question:
+            "Which guiding principle recommends assessing the current state and deciding what can be reused?",
+          options: [
+            "Focus on value",
+            "Start where you are",
+            "Collaborate and promote visibility",
+            "Progress iteratively with feedback",
+          ],
+          correctAnswer: 1,
+          rationale:
+            "B. Correct. The guiding principle 'start where you are' advises \"Having a proper understanding of the current state of services and methods is important to selecting which elements to re-use, alter, or build upon.\" Ref 4.3.2.3",
+        },
+      ];
+
+      // --- DOM Elements ---
+      const quizHeaderEl = document.getElementById("quiz-header");
+      const scoreEl = document.getElementById("score");
+      const progressBarEl = document.getElementById("progress-bar");
+      const questionAreaEl = document.getElementById("question-area");
+      const feedbackAreaEl = document.getElementById("feedback-area");
+      const nextQuestionBtn = document.getElementById("next-question-btn");
+      const resultsAreaEl = document.getElementById("results-area");
+      const finalScoreTitleEl = document.getElementById("final-score-title");
+      const finalScoreTextEl = document.getElementById("final-score-text");
+      const finalMessageEl = document.getElementById("final-message");
+      const restartQuizBtn = document.getElementById("restart-quiz-btn");
+      const navigationAreaEl = document.getElementById("navigation-area");
+      const progressBarContainerEl = document.getElementById(
+        "progress-bar-container"
+      );
+
+      // --- Quiz State Variables ---
+      let currentQuestionIndex = 0;
+      let score = 0;
+      let answered = false;
+      let activeQuizData = [];
+
+      /**
+       * Shuffles an array in place using the Fisher-Yates algorithm.
+       * @param {Array} array - The array to shuffle.
+       */
+      function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+      }
+
+      /**
+       * Starts or restarts the quiz.
+       */
+      function startQuiz() {
+        console.log("Starting quiz...");
+        try {
+          // Create a deep copy of quizData for the current session
+          activeQuizData = quizData.map((q) => {
+            if (
+              !q ||
+              typeof q.options === "undefined" ||
+              !Array.isArray(q.options)
+            ) {
+              console.error("Malformed question object in quizData:", q);
+              return null;
+            }
+            return {
+              ...q,
+              options: [...q.options],
+            };
+          });
+          activeQuizData = activeQuizData.filter((q) => q !== null); // Remove any malformed questions
+
+          console.log(
+            "Initial activeQuizData (count: " + activeQuizData.length + "):",
+            JSON.parse(JSON.stringify(activeQuizData.slice(0, 5)))
+          ); // Log first 5 for brevity
+
+          if (activeQuizData.length === 0 && quizData.length > 0) {
+            console.error(
+              "activeQuizData is empty after mapping, but quizData is not. Check map logic or quizData structure."
+            );
+            questionAreaEl.innerHTML =
+              "<p class='text-red-500 p-4 text-center'>Error: Could not load quiz questions. Data mapping failed.</p>";
+            return;
+          }
+          if (activeQuizData.length === 0) {
+            console.error("No questions loaded into activeQuizData.");
+            questionAreaEl.innerHTML =
+              "<p class='text-red-500 p-4 text-center'>Error: No questions available.</p>";
+            return;
+          }
+
+          // Shuffle the order of questions
+          shuffleArray(activeQuizData);
+          console.log(
+            "Shuffled activeQuizData (count: " + activeQuizData.length + "):",
+            JSON.parse(JSON.stringify(activeQuizData.slice(0, 5)))
+          );
+
+          // Shuffle options within each question and update correctAnswer index
+          activeQuizData.forEach((question, index) => {
+            if (
+              !question ||
+              !question.options ||
+              typeof question.correctAnswer === "undefined"
+            ) {
+              console.error(
+                `Malformed question object at index ${index} in activeQuizData before option shuffle:`,
+                question
+              );
+              // This question might be problematic, potentially remove it or mark as invalid
+              activeQuizData.splice(index, 1); // Risky to modify while iterating, better to filter earlier
+              return;
+            }
+            const correctAnswerText = question.options[question.correctAnswer];
+            if (typeof correctAnswerText === "undefined") {
+              console.error(
+                `Correct answer text is undefined for question (original index ${
+                  question.originalIndex || "N/A"
+                }, current shuffled index ${index}). Initial correctAnswer index: ${
+                  question.correctAnswer
+                }, Options:`,
+                question.options
+              );
+              // This indicates an issue with original correctAnswer index or options array
+            }
+            shuffleArray(question.options);
+            question.correctAnswer =
+              question.options.indexOf(correctAnswerText);
+            if (question.correctAnswer === -1) {
+              console.error(
+                `Correct answer text "${correctAnswerText}" not found in shuffled options for question (shuffled index ${index}). Options:`,
+                question.options
+              );
+              // This is a critical error in option shuffling logic or data integrity.
+              // Consider how to handle this - e.g., mark question as invalid or skip.
+            }
+          });
+          console.log(
+            "activeQuizData after option shuffle (count: " +
+              activeQuizData.length +
+              "):",
+            JSON.parse(JSON.stringify(activeQuizData.slice(0, 5)))
+          );
+        } catch (e) {
+          console.error("Error during quiz data preparation:", e);
+          questionAreaEl.innerHTML = `<p class='text-red-500 p-4 text-center'>Error preparing quiz data: ${e.message}. Check console for details.</p>`;
+          return;
+        }
+
+        // Reset quiz state variables
+        currentQuestionIndex = 0;
+        score = 0;
+        answered = false;
+
+        // Reset UI elements
+        resultsAreaEl.classList.add("hidden");
+        questionAreaEl.classList.remove("hidden");
+        feedbackAreaEl.classList.remove("hidden");
+        navigationAreaEl.classList.remove("hidden");
+        quizHeaderEl.classList.remove("hidden");
+        progressBarContainerEl.classList.remove("hidden");
+
+        updateScoreDisplay();
+        if (activeQuizData.length > 0) {
+          loadQuestion();
+        } else {
+          console.error("No questions available to load after preparation.");
+          questionAreaEl.innerHTML =
+            "<p class='text-red-500 p-4 text-center'>Error: No questions loaded. Quiz cannot start.</p>";
+          nextQuestionBtn.disabled = true;
+        }
+
+        nextQuestionBtn.textContent = "Next Question";
+        // nextQuestionBtn.disabled is set in loadQuestion or if no questions load
+      }
+
+      /**
+       * Loads the current question into the HTML.
+       */
+      function loadQuestion() {
+        console.log(
+          `Attempting to load question index: ${currentQuestionIndex}`
+        );
+        if (
+          !activeQuizData ||
+          activeQuizData.length === 0 ||
+          currentQuestionIndex >= activeQuizData.length ||
+          !activeQuizData[currentQuestionIndex]
+        ) {
+          console.error(
+            "Cannot load question: activeQuizData is invalid, empty, or index out of bounds.",
+            "activeQuizData length:",
+            activeQuizData ? activeQuizData.length : "undefined",
+            "currentQuestionIndex:",
+            currentQuestionIndex
+          );
+          questionAreaEl.innerHTML =
+            "<p class='text-red-500 p-4 text-center'>Error: Could not load the current question. No more questions or data error.</p>";
+          nextQuestionBtn.disabled = true;
+          // Optionally, show results if it's because quiz ended unexpectedly
+          if (
+            activeQuizData &&
+            activeQuizData.length > 0 &&
+            currentQuestionIndex >= activeQuizData.length
+          ) {
+            showResults();
+          }
+          return;
+        }
+
+        answered = false;
+        questionAreaEl.classList.remove("question-enter");
+        void questionAreaEl.offsetWidth;
+        questionAreaEl.classList.add("question-enter");
+
+        const currentQuestion = activeQuizData[currentQuestionIndex];
+        console.log(
+          "Current question data being loaded:",
+          JSON.parse(JSON.stringify(currentQuestion))
+        );
+
+        if (
+          !currentQuestion.question ||
+          !currentQuestion.options ||
+          !Array.isArray(currentQuestion.options)
+        ) {
+          console.error(
+            "Current question object is malformed:",
+            currentQuestion
+          );
+          questionAreaEl.innerHTML =
+            "<p class='text-red-500 p-4 text-center'>Error: Question data is incomplete or malformed.</p>";
+          nextQuestionBtn.disabled = true;
+          return;
+        }
+
+        questionAreaEl.innerHTML = `
+                <div class="question-header">
+                    <p class="text-gray-600 text-sm">Question ${
+                      currentQuestionIndex + 1
+                    } of ${activeQuizData.length}</p>
+                    <h2 class="question-text">${currentQuestion.question}</h2>
+                </div>
+                <div id="options-container">
+                    ${currentQuestion.options
+                      .map(
+                        (option, index) => `
+                        <button class="option-button" data-index="${index}">
+                            <span class="font-medium mr-2">${String.fromCharCode(
+                              65 + index
+                            )}.</span> ${option}
+                        </button>
+                    `
+                      )
+                      .join("")}
+                </div>
+            `;
+        feedbackAreaEl.innerHTML = "";
+        addOptionListeners();
+        updateProgressBar();
+        nextQuestionBtn.disabled = true;
+      }
+
+      /**
+       * Adds click event listeners to option buttons.
+       */
+      function addOptionListeners() {
+        const optionButtons = document.querySelectorAll(".option-button");
+        optionButtons.forEach((button) => {
+          button.addEventListener("click", selectAnswer);
+        });
+      }
+
+      /**
+       * Handles answer selection.
+       */
+      function selectAnswer(event) {
+        if (answered) return;
+        answered = true;
+
+        Tone.start().catch((e) => console.error("Tone.js context error:", e));
+        clickSound.triggerAttackRelease("C4", "8n");
+
+        const selectedButton = event.currentTarget;
+        const selectedAnswerIndex = parseInt(selectedButton.dataset.index);
+        const currentQuestion = activeQuizData[currentQuestionIndex];
+        const correctAnswerIndex = currentQuestion.correctAnswer;
+
+        const allOptionButtons = document.querySelectorAll(".option-button");
+        allOptionButtons.forEach((btn) => (btn.disabled = true));
+
+        selectedButton.classList.add("selected");
+
+        if (selectedAnswerIndex === correctAnswerIndex) {
+          score++;
+          selectedButton.classList.add("correct");
+          feedbackAreaEl.innerHTML = `
+                    <div class="feedback correct">
+                        <strong class="font-semibold">Correct!</strong>
+                        <div class="rationale-title">Rationale:</div>
+                        <p class="rationale-text">${currentQuestion.rationale}</p>
+                    </div>
+                `;
+          correctSound.triggerAttackRelease("C5", "8n", Tone.now() + 0.1);
+        } else {
+          selectedButton.classList.add("incorrect");
+          if (
+            correctAnswerIndex >= 0 &&
+            correctAnswerIndex < allOptionButtons.length
+          ) {
+            // Ensure correctAnswerIndex is valid
+            allOptionButtons[correctAnswerIndex].classList.add("correct");
+          } else {
+            console.error(
+              "Correct answer index is invalid for highlighting:",
+              correctAnswerIndex,
+              "Options length:",
+              allOptionButtons.length
+            );
+          }
+          feedbackAreaEl.innerHTML = `
+                    <div class="feedback incorrect">
+                        <strong class="font-semibold">Incorrect.</strong> 
+                        ${
+                          correctAnswerIndex >= 0
+                            ? `The correct answer was ${String.fromCharCode(
+                                65 + correctAnswerIndex
+                              )}.`
+                            : "Error determining correct answer."
+                        }
+                        <div class="rationale-title">Rationale:</div>
+                        <p class="rationale-text">${
+                          currentQuestion.rationale
+                        }</p>
+                    </div>
+                `;
+          incorrectSound.triggerAttackRelease("C3", "4n", Tone.now() + 0.1);
+        }
+        updateScoreDisplay();
+        nextQuestionBtn.disabled = false;
+        if (currentQuestionIndex === activeQuizData.length - 1) {
+          nextQuestionBtn.textContent = "Show Results";
+        }
+      }
+
+      /**
+       * Updates the score display.
+       */
+      function updateScoreDisplay() {
+        scoreEl.textContent = `Score: ${score} / ${activeQuizData.length}`;
+      }
+
+      /**
+       * Updates the progress bar.
+       */
+      function updateProgressBar() {
+        if (activeQuizData.length === 0) {
+          // Prevent division by zero
+          progressBarEl.style.width = "0%";
+          return;
+        }
+        const progressPercentage =
+          ((currentQuestionIndex + 1) / activeQuizData.length) * 100;
+        progressBarEl.style.width = `${progressPercentage}%`;
+      }
+
+      /**
+       * Handles moving to the next question or showing results.
+       */
+      function handleNextQuestion() {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < activeQuizData.length) {
+          loadQuestion();
+        } else {
+          showResults();
+        }
+      }
+
+      /**
+       * Displays final quiz results.
+       */
+      function showResults() {
+        questionAreaEl.classList.add("hidden");
+        feedbackAreaEl.classList.add("hidden");
+        navigationAreaEl.classList.add("hidden");
+        quizHeaderEl.classList.add("hidden");
+        progressBarContainerEl.classList.add("hidden");
+
+        resultsAreaEl.classList.remove("hidden");
+        resultsAreaEl.classList.add("question-enter");
+
+        finalScoreTextEl.textContent = `Your final score is ${score} out of ${activeQuizData.length}.`;
+
+        let message = "";
+        const percentage =
+          activeQuizData.length > 0 ? (score / activeQuizData.length) * 100 : 0;
+        if (percentage === 100) {
+          message = "Excellent work! You're an ITIL master! 🎉";
+          finalScoreTitleEl.textContent = "Perfect Score!";
+          finalScoreTitleEl.style.color = "#16a34a";
+        } else if (percentage >= 75) {
+          message =
+            "Great job! You have a strong understanding. Keep it up! 👍";
+          finalScoreTitleEl.textContent = "Well Done!";
+          finalScoreTitleEl.style.color = "#2563eb";
+        } else if (percentage >= 50) {
+          message = "Good effort! Review the rationales to improve further. 📚";
+          finalScoreTitleEl.textContent = "Good Effort!";
+          finalScoreTitleEl.style.color = "#f59e0b";
+        } else {
+          message =
+            "Keep practicing! Focus on the rationales to build your knowledge. 💡";
+          finalScoreTitleEl.textContent = "Keep Practicing!";
+          finalScoreTitleEl.style.color = "#ef4444";
+        }
+        finalMessageEl.textContent = message;
+        finishSound.triggerAttackRelease(
+          ["C4", "E4", "G4", "C5"],
+          "2n",
+          Tone.now() + 0.1
+        );
+      }
+
+      // --- Event Listeners ---
+      nextQuestionBtn.addEventListener("click", () => {
+        if (
+          answered ||
+          (activeQuizData && currentQuestionIndex === activeQuizData.length)
+        ) {
+          handleNextQuestion();
+        }
+      });
+      restartQuizBtn.addEventListener("click", startQuiz);
+
+      // --- Initial Load ---
+      document.addEventListener("DOMContentLoaded", startQuiz);
+    </script>
+  </body>
+</html>
