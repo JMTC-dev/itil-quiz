@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITIL v4 Quiz Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+        }
+        .quiz-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .question-header {
+            border-bottom: 2px solid #e5e7eb; /* Tailwind gray-200 */
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .option-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid #d1d5db; /* Tailwind gray-300 */
+            border-radius: 8px;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .option-btn:hover {
+            background-color: #f9fafb; /* Tailwind gray-50 */
+            border-color: #6b7280; /* Tailwind gray-500 */
+        }
+        .option-btn.selected {
+            background-color: #3b82f6; /* Tailwind blue-500 */
+            color: white;
+            border-color: #3b82f6;
+        }
+        .option-btn.correct {
+            background-color: #10b981; /* Tailwind green-500 */
+            color: white;
+            border-color: #10b981;
+        }
+        .option-btn.incorrect {
+            background-color: #ef4444; /* Tailwind red-500 */
+            color: white;
+            border-color: #ef4444;
+        }
+        .feedback {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .feedback.correct {
+            background-color: #d1fae5; /* Tailwind green-100 */
+            color: #065f46; /* Tailwind green-700 */
+            border: 1px solid #6ee7b7; /* Tailwind green-300 */
+        }
+        .feedback.incorrect {
+            background-color: #fee2e2; /* Tailwind red-100 */
+            color: #991b1b; /* Tailwind red-700 */
+            border: 1px solid #fca5a5; /* Tailwind red-300 */
+        }
+        .rationale {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: #4b5563; /* Tailwind gray-600 */
+        }
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e5e7eb; /* Tailwind gray-200 */
+            border-radius: 9999px;
+            height: 10px;
+            margin-bottom: 1.5rem;
+        }
+        .progress-bar {
+            background-color: #3b82f6; /* Tailwind blue-500 */
+            height: 10px;
+            border-radius: 9999px;
+            transition: width 0.3s ease-in-out;
+        }
+        .action-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .action-button.primary {
+            background-color: #3b82f6; /* Tailwind blue-500 */
+            color: white;
+        }
+        .action-button.primary:hover {
+            background-color: #2563eb; /* Tailwind blue-600 */
+        }
+         .action-button.secondary {
+            background-color: #6b7280; /* Tailwind gray-500 */
+            color: white;
+        }
+        .action-button.secondary:hover {
+            background-color: #4b5563; /* Tailwind gray-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="quiz-container w-full">
+        <div id="quiz-header" class="question-header">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">ITIL v4 Quiz Challenge</h1>
+            <div class="flex justify-between text-sm text-gray-600">
+                <span id="question-counter"></span>
+                <span id="score-display">Score: 0</span>
+            </div>
+        </div>
+
+        <div id="progress-bar-container" class="progress-bar-container">
+            <div id="progress-bar" class="progress-bar" style="width: 0%;"></div>
+        </div>
+
+        <div id="question-area">
+            <h2 id="question-text" class="text-xl font-semibold text-gray-700 mb-6"></h2>
+            <div id="options-container"></div>
+        </div>
+
+        <div id="feedback-area" class="mt-6"></div>
+
+        <div class="mt-8 flex justify-end space-x-3">
+            <button id="submit-btn" class="action-button primary">Submit Answer</button>
+            <button id="next-btn" class="action-button primary hidden">Next Question</button>
+        </div>
+
+        <div id="results-area" class="hidden text-center mt-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Quiz Completed!</h2>
+            <p id="final-score" class="text-xl text-gray-700 mb-2"></p>
+            <p id="final-percentage" class="text-xl text-gray-700 mb-6"></p>
+            <button id="restart-btn" class="action-button secondary">Restart Quiz</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Quiz Data ---
+        const quizData = [
+            {
+                question: "Which among the following is the third dimension of service management?",
+                options: [
+                    "Value streams and processes",
+                    "Organisations and people",
+                    "Information and Technology",
+                    "Partners and Suppliers"
+                ],
+                answerIndex: 3,
+                rationale: "The four dimensions of service management are: 1. Organizations and people, 2. Information and technology, 3. Partners and suppliers, 4. Value streams and processes. 'Partners and Suppliers' is listed as the third dimension. (Source: LW p.79, QRG Section 3.1.c)"
+            },
+            {
+                question: "A (blank) is a series of steps that an organisation uses to create and deliver products and services to a service consumer.",
+                options: [
+                    "Value Stream",
+                    "Process",
+                    "Service Value System",
+                    "Service Value Chain"
+                ],
+                answerIndex: 0,
+                rationale: "A value stream is a series of steps an organization undertakes to create and deliver products and services to consumers. (Source: LW p.82, QRG Section 3.1.d)"
+            },
+            {
+                question: "In a Service Value System, recommendations that can guide an organisation regardless of variables like its vision, goals or hierarchy are referred to as:",
+                options: [
+                    "Governance",
+                    "Continual improvement",
+                    "Guiding Principles",
+                    "Practices"
+                ],
+                answerIndex: 2,
+                rationale: "Guiding principles are recommendations that can guide an organization in all circumstances, regardless of changes in its goals, strategies, type of work, or management structure. (Source: LW p.91, QRG Section 2)"
+            },
+            {
+                question: "Mark the statement as True/False: The four dimensions have sharp boundaries and they cannot overlap.",
+                options: ["True", "False"],
+                answerIndex: 1,
+                rationale: "The four dimensions do not have sharp boundaries and may overlap. They will sometimes interact in unpredictable ways. (Source: LW p.70)"
+            },
+            {
+                question: "The purpose of change enablement is:",
+                options: [
+                    "To move new or changed hardware, software, documentation, processes or any other component to live environments",
+                    "To maximise the number of successful IT changes by ensuring that risks have been properly assessed, authorising changes to proceed, and managing the change schedule",
+                    "To minimise the negative impact of incident by restoring normal service operation as quickly as possible",
+                    "To plan and manage the full lifecycle of IT assets"
+                ],
+                answerIndex: 1,
+                rationale: "The purpose of the change enablement practice is to maximize the number of successful service and product changes by ensuring that risks have been properly assessed, authorizing changes to proceed, and managing the change schedule. (Source: LW p.178, QRG Section 6.j)"
+            },
+            {
+                question: "Which of the following dimension describes 'roles and responsibilities, formal organisational structures, culture and required staffing and competencies'?",
+                options: [
+                    "Information and technology",
+                    "Partners and suppliers",
+                    "Value streams and processes",
+                    "Organisations and people"
+                ],
+                answerIndex: 3,
+                rationale: "The 'Organizations and people' dimension covers roles and responsibilities, formal organizational structures, culture, and required staffing and competencies. (Source: LW p.71, QRG Section 3.1.a)"
+            },
+            {
+                question: "Results desired by a stakeholder is referred to as:",
+                options: ["Outcome", "Output", "Utility", "Product"],
+                answerIndex: 0,
+                rationale: "An outcome is a result for a stakeholder enabled by one or more outputs. (Source: LW p.53, QRG Section 1.2.c)"
+            },
+            {
+                question: "Which guiding principle ensures that everything that the organisation does links back to providing value to service consumers?",
+                options: [
+                    "Focus on value",
+                    "Progress Iteratively with feedback",
+                    "Start where you are",
+                    "Think and work holistically"
+                ],
+                answerIndex: 0,
+                rationale: "The 'Focus on value' guiding principle states that all activities conducted by the organization should link back, directly or indirectly, to value for itself, its customers, and other stakeholders. (Source: LW p.123, QRG Section 2)"
+            },
+            {
+                question: "(Blank) represents how the components and activities of an organisation work together to facilitate value creation through IT-enabled services.",
+                options: [
+                    "Service Value System",
+                    "Service Value Chain",
+                    "Service Management",
+                    "Service Value Creation"
+                ],
+                answerIndex: 0,
+                rationale: "The ITIL Service Value System (SVS) describes how all the components and activities of the organization work together as a system to enable value creation. (Source: LW p.89, QRG Section 4)"
+            },
+            {
+                question: "Which of the following is NOT a core component of Service Value System (SVS)?",
+                options: [
+                    "Governance",
+                    "ITIL Service Value Chain",
+                    "Release Management",
+                    "ITIL Practices"
+                ],
+                answerIndex: 2,
+                rationale: "The core components of the ITIL SVS are Guiding Principles, Governance, Service Value Chain, Practices, and Continual Improvement. Release Management is an ITIL practice, not a top-level component of the SVS. (Source: LW p.90-93, QRG Section 4)"
+            },
+            {
+                question: "Identify the missing word in the below sentence. As per the principle 'Keep it simple and practical', Always use the (blank) number of steps to accomplish an objective.",
+                options: ["Maximum", "Finite", "Infinite", "Minimum"],
+                answerIndex: 3,
+                rationale: "The 'Keep it simple and practical' guiding principle advises using the minimum number of steps necessary to accomplish an objective. (Source: LW p.147, QRG Section 2)"
+            },
+            {
+                question: "The purpose of the (blank) practice is to capture demand for incident resolution and service requests.",
+                options: [
+                    "Service Desk",
+                    "Change Enablement",
+                    "Problem management",
+                    "Incident management"
+                ],
+                answerIndex: 0,
+                rationale: "The purpose of the Service Desk practice is to capture demand for incident resolution and service requests. It also acts as the entry point and single point of contact for the service provider with all its users. (Source: LW p.185, QRG Section 6.n)"
+            },
+            {
+                question: "Utility is defined as:",
+                options: [
+                    "Assurance that a product or service will meet agreed requirements",
+                    "A tangible or intangible deliverable of an activity",
+                    "The functionality offered by a product or service to meet a particular need",
+                    "None of these"
+                ],
+                answerIndex: 2,
+                rationale: "Utility is the functionality offered by a product or service to meet a particular need. It can be summarized as 'what the service does'. (Source: LW p.59, QRG Section 1.1.f)"
+            },
+            {
+                question: "The purpose of the release management practice is:",
+                options: [
+                    "To make new and changed services and features available for use",
+                    "To move new or changed hardware, software, documentation, processes or any other component to live environments.",
+                    "To ensure that accurate and reliable information about the configuration of services, and the CIs that support them, is available when and where it is needed.",
+                    "To add, modify or remove anything that could have a direct or indirect effect on services"
+                ],
+                answerIndex: 0,
+                rationale: "The purpose of the release management practice is to make new and changed services and features available for use. (Source: LW p.183, QRG Section 6.f)"
+            },
+            {
+                question: "Which among the following are the General Management Practices? i. Architecture management ii. Portfolio management iii. Availability management iv. IT Asset Management",
+                options: ["i and iii", "i and ii", "ii and iii", "Only ii"],
+                answerIndex: 1,
+                rationale: "General Management Practices include Architecture Management and Portfolio Management. Availability Management and IT Asset Management are Service Management practices. (Source: LW p.171 shows the categories. Architecture management and Portfolio management are listed under General Management Practices in ITIL documentation.)"
+            },
+            {
+                question: "Which among the following statement is true about emergency changes?",
+                options: [
+                    "This type of change is normally a low-risk, perhaps quality-of-life change - a minor, incremental alteration that can be approved without top-level involvement",
+                    "They may occur in response to a cyberattack, discovery of a vulnerability or bug or data breach of any kind",
+                    "These changes follow a set procedure as they can vary in importance from negligible to major",
+                    "None of these"
+                ],
+                answerIndex: 1,
+                rationale: "Emergency changes are changes that must be implemented as soon as possible, for example, to resolve an incident or implement a security patch (like in response to a cyberattack or vulnerability). (Source: LW p.294, QRG Section 6.j)"
+            },
+            {
+                question: "Any component that needs to be configured in order to deliver a service is referred to as:",
+                options: ["Service desk", "Event", "IT asset", "Configuration item"],
+                answerIndex: 3,
+                rationale: "A Configuration Item (CI) is any component that needs to be managed in order to deliver an IT service. (Source: LW p.184, QRG Section 6.g)"
+            },
+            {
+                question: "According to the Service Level Management, which of the following statement is true about operational metrics?",
+                options: [
+                    "These may include response times, request handling times, system uptime, and more.",
+                    "These may include service activities that customers find useful, such as business activities completed during opening hours, terminal availability, and so on.",
+                    "It includes active listening and asking questions about the customer views the services, how they would like it to be improved, how the service fit in with your lifecycle",
+                    "All of these"
+                ],
+                answerIndex: 0,
+                rationale: "Operational metrics are low-level indicators of various operational activities and may include system availability, incident response and fix times, change and request processing times, and system response times. (Source: LW p.285)"
+            },
+            {
+                question: "Which among the following statement about service request is NOT true?",
+                options: [
+                    "Service requests are reports of a failure or degradation",
+                    "Some service requests require authorisation according to financial, informational security or other policy, while others may not",
+                    "A request from a user or a user's authorised representative that initiates a service action which had been agreed as part of normal service delivery",
+                    "All statements are true"
+                ],
+                answerIndex: 0,
+                rationale: "Service requests are NOT reports of a failure or degradation; those are incidents. Service requests are for pre-defined, user-initiated actions that are a normal part of service delivery. (Source: LW p.187, 232; QRG Section 6.m)"
+            },
+            {
+                question: "As per Value Chain Activities, choose the inputs of Plan from the following: i. Policies from governing body ii. Demand/requirements for products and services iii. Demands from 'Engage' iv. New or changes services from 'Design and Transition'",
+                options: ["i and ii", "ii and iii", "i and iii", "ii and iv"],
+                answerIndex: 2,
+                rationale: "Key inputs to the 'Plan' value chain activity include: policies, requirements, and constraints from the governing body (i); and consolidated demands and opportunities provided by 'Engage' (iii). (Source: LW p.106, 333)"
+            },
+            {
+                question: "The change enablement process includes three types of changes. Which following statement is CORRECT regarding Standard Changes?",
+                options: [
+                    "It may occur in response to cyberattack, discovery of vulnerability or bug, or data breach of any kind",
+                    "This type of change normally a low-risk, perhaps quality of life changes, a minor incremental alteration that can be approved without top-level involvement",
+                    "These changes follow a set procedure as they can vary in importance from negligible to major",
+                    "None of listed above"
+                ],
+                answerIndex: 1,
+                rationale: "Standard changes are low-risk, pre-authorized changes that are well understood and fully documented. They are often minor, incremental alterations. (Source: LW p.294, QRG Section 6.j)"
+            },
+            {
+                question: "According to Problem Management, which of the following is included in the Problem control?",
+                options: [
+                    "Analysing incident reports",
+                    "Analysing root causes/problems",
+                    "Revisiting unresolved errors",
+                    "Evaluating information from both first and third party teams"
+                ],
+                answerIndex: 1,
+                rationale: "Problem control activities include problem analysis (analyzing root causes) and documenting workarounds and known errors. (Source: LW p.251, QRG Section 6.l)"
+            },
+            {
+                question: "According to Value Chain Activities, what is the purpose of Design and Transition?",
+                options: [
+                    "Ensure the continual improvement of products and services, across all value chain activities and the dimensions of service management",
+                    "Ensure a shared understanding of the vision, current state and improvement direction for all dimensions and all products and services across the organisation",
+                    "To ensure that products and services continually meet stakeholder's expectations for quality, cost and time to market.",
+                    "To ensure that all components are available when and where they are needed and meet, agreed specifications"
+                ],
+                answerIndex: 2,
+                rationale: "The purpose of the 'Design and Transition' value chain activity is to ensure that products and services continually meet stakeholder expectations for quality, costs, and time to market. (Source: LW p.109, QRG Section 5.2.d)"
+            },
+            {
+                question: "Total number of guiding principles in ITIL 4 are:",
+                options: ["Six", "Seven", "Eight", "Four"],
+                answerIndex: 1,
+                rationale: "There are seven guiding principles in ITIL 4. (Source: LW p.122, QRG Section 2)"
+            },
+            {
+                question: "According to Service Consumers, who is a Sponsor?",
+                options: [
+                    "A person who users a service",
+                    "A person who defines the requirements for a service and takes responsibility for the outcomes of service consumption",
+                    "A person who authorises budget for service consumption",
+                    "All of above"
+                ],
+                answerIndex: 2,
+                rationale: "A Sponsor is the role that authorizes the budget for service consumption. (Source: LW p.26, QRG Section 1.1.e)"
+            },
+            {
+                question: "Which of the following statement is CORRECT about Continual Improvement?",
+                options: [
+                    "A constant activity undertaken to ensure that an organisation's outputs stay relevant and current",
+                    "The means by which organisation is managed and oriented.",
+                    "Resources used to complete work tasks",
+                    "A set of six interconnected activities that an organisation undertakes in order to create value."
+                ],
+                answerIndex: 0,
+                rationale: "Continual improvement is a recurring organizational activity performed at all levels to ensure that an organization's performance continually meets stakeholders’ expectations and that outputs remain relevant. (Source: LW p.93, QRG Section 4.h, 6.i). Option A aligns with aligning practices and services with changing business needs."
+            },
+            {
+                question: "A set of specialised organisational capabilities to enable value for customers in the form of services. This statement is TRUE about:",
+                options: ["Value co-creation", "Service management", "Release management", "All of these"],
+                answerIndex: 1,
+                rationale: "Service management is defined as a set of specialized organizational capabilities for enabling value to customers in the form of services. (Source: LW p.16, QRG Section 1.1.b)"
+            },
+            {
+                question: "A process is defined as:",
+                options: [
+                    "Resources used to complete work tasks",
+                    "The means by which an organisation is managed and oriented",
+                    "A set of integrated or interacting activities that transforms inputs into outputs",
+                    "None of the above listed"
+                ],
+                answerIndex: 2,
+                rationale: "A process is a set of interrelated or interacting activities that transform inputs into outputs. Processes define the sequence of actions and their dependencies. (Source: LW p.84, Glossary p.421)"
+            },
+            {
+                question: "A service value chain is a set of (blank) interconnected activities that an organisation undertakes in order to create value.",
+                options: ["six", "seven", "four", "five"],
+                answerIndex: 0,
+                rationale: "The ITIL service value chain includes six interconnected value chain activities: Plan, Improve, Engage, Design & Transition, Obtain/Build, and Deliver & Support. (Source: LW p.99, QRG Section 5)"
+            },
+            {
+                question: "A description of one or more services, designed to address the needs of a target consumer group is referred to as (blank).",
+                options: ["Service and Product", "Service Offering", "Service Value Stream", "Service Provider"],
+                answerIndex: 1,
+                rationale: "A service offering is a formal description of one or more services, designed to address the needs of a target consumer group. (Source: LW p.35, QRG Section 1.3.a)"
+            },
+            {
+                question: "In context of Information Security Management, which of the following is TRUE about Prevention?",
+                options: [
+                    "Rapidly and reliably detecting incidents that can't be prevented.",
+                    "Ensuring that security events don't occur.",
+                    "Recovering from incidents after they are detected",
+                    "All of these"
+                ],
+                answerIndex: 1,
+                rationale: "In information security management, Prevention aims to ensure that security incidents do not occur. (Source: LW p.192, QRG Section 6.a)"
+            },
+            {
+                question: "Which of the following is NOT a type of supplier relationship?",
+                options: ["Outsourcing", "Single source", "Multi-sourcing", "Double sourcing"],
+                answerIndex: 3,
+                rationale: "Common supplier relationship types include insourcing, outsourcing, single source (or partnership), and multi-sourcing. 'Double sourcing' is not a standard ITIL term for a type of supplier relationship. (Source: LW p.198 mentions these types)"
+            },
+            {
+                question: "Which ITIL dimension encompasses an organisation's relationships with other organisations that are involved in the design, development, deployment, delivery, support and/or continual improvement of services?",
+                options: [
+                    "Organisations and People",
+                    "Information and Technology",
+                    "Partners and Suppliers",
+                    "Value Streams and Processes"
+                ],
+                answerIndex: 2,
+                rationale: "The 'Partners and Suppliers' dimension encompasses an organization's relationships with other organizations involved in the service lifecycle. (Source: LW p.79, QRG Section 3.1.c)"
+            },
+            {
+                question: "Which of the following role uses a service?",
+                options: ["The customer", "The user", "The supplier", "The sponsor"],
+                answerIndex: 1,
+                rationale: "A User is the role that uses services. (Source: LW p.26, QRG Section 1.1.d)"
+            },
+            {
+                question: "According to Value Chain Activities, what are the Outputs of Deliver and Support? i. Contract and agreement requirements ii. Improvement opportunities and change requests iii. Performance info and improvement opportunities iv. New and changed products and services",
+                options: ["i and ii", "ii and iii", "iii and iv", "i and iv"],
+                answerIndex: 0,
+                rationale: "Key outputs of 'Deliver and Support' include contract and agreement requirements (for engage), improvement opportunities (for improve), and change requests (for obtain/build). (Source: LW p.111, 343)"
+            },
+            {
+                question: "What does 'P' stands for in MVP?",
+                options: ["Process", "Project", "Product", "Programme"],
+                answerIndex: 2,
+                rationale: "MVP stands for Minimum Viable Product. (Source: LW p.139)"
+            },
+            {
+                question: "Complete the following sentence with the suitable word: The purpose of the (blank) process is to minimise the negative impact of incident by restoring normal service operation as quickly as possible.",
+                options: [
+                    "Incident management",
+                    "IT asset management",
+                    "Monitoring and event management",
+                    "Release management"
+                ],
+                answerIndex: 0,
+                rationale: "The purpose of the Incident Management practice is to minimize the negative impact of incidents by restoring normal service operation as quickly as possible. (Source: LW p.179, QRG Section 6.k)"
+            },
+            {
+                question: "Which among the following statement about Service desk is true?",
+                options: [
+                    "It is an aspect of IT asset management that is aimed at managing the lifecycle of software assets.",
+                    "It is a sub-process of asset management that is aimed at managing the lifecycle and costs of IT infrastructure.",
+                    "It includes information on how the CIs have been configured and the relationships between them.",
+                    "It should provide a variety of channels for access."
+                ],
+                answerIndex: 3,
+                rationale: "Service desks provide a variety of channels for access, such as phone calls, service portals, chat, email, etc. (Source: LW p.241)"
+            },
+            {
+                question: "Mark the statement as True/False: The 'problem management' practice is the responsibility of everyone in the organisation.",
+                options: ["True", "False"],
+                answerIndex: 1,
+                rationale: "While aspects of identifying issues can involve many, the 'problem management' practice itself, with its specific activities like root cause analysis and error control, is typically driven by dedicated roles or teams, not everyone in the organization. Continual improvement is everyone's responsibility. (Source: LW p.255 notes problem management activities interface with other practices and often rely on specialist knowledge. LW p.273 states continual improvement is everyone's responsibility.)"
+            },
+            {
+                question: "Which value chain activity ensures continual improvement of products, services and practices across all value chain activities and the four dimensions of service management?",
+                options: ["Plan", "Deliver and support", "Obtain/build", "Improve"],
+                answerIndex: 3,
+                rationale: "The purpose of the 'Improve' value chain activity is to ensure continual improvement of products, services, and practices across all value chain activities and the four dimensions of service management. (Source: LW p.107, QRG Section 5.2.b)"
+            }
+        ];
+
+        // --- DOM Elements ---
+        const quizHeader = document.getElementById('quiz-header');
+        const questionCounterEl = document.getElementById('question-counter');
+        const scoreDisplayEl = document.getElementById('score-display');
+        const progressBarEl = document.getElementById('progress-bar');
+        const questionAreaEl = document.getElementById('question-area');
+        const questionTextEl = document.getElementById('question-text');
+        const optionsContainerEl = document.getElementById('options-container');
+        const feedbackAreaEl = document.getElementById('feedback-area');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const resultsAreaEl = document.getElementById('results-area');
+        const finalScoreEl = document.getElementById('final-score');
+        const finalPercentageEl = document.getElementById('final-percentage');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // --- Quiz State ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let selectedOptionButton = null;
+        let answerSubmitted = false;
+
+        // --- Functions ---
+
+        /**
+         * Shuffles an array in place.
+         * @param {Array} array Array to shuffle.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+
+        /**
+         * Loads and displays the current question and its options.
+         */
+        function loadQuestion() {
+            answerSubmitted = false;
+            selectedOptionButton = null;
+            const currentQuestion = quizData[currentQuestionIndex];
+
+            questionTextEl.textContent = currentQuestion.question;
+            optionsContainerEl.innerHTML = ''; // Clear previous options
+            feedbackAreaEl.innerHTML = ''; // Clear previous feedback
+            feedbackAreaEl.className = 'feedback mt-6'; // Reset feedback class
+
+            currentQuestion.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-btn');
+                button.dataset.index = index;
+                button.addEventListener('click', () => selectOption(button));
+                optionsContainerEl.appendChild(button);
+            });
+
+            questionCounterEl.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+            updateProgressBar();
+            submitBtn.classList.remove('hidden');
+            nextBtn.classList.add('hidden');
+            submitBtn.disabled = true; // Disabled until an option is selected
+        }
+
+        /**
+         * Handles the selection of an answer option.
+         * @param {HTMLElement} button The selected option button.
+         */
+        function selectOption(button) {
+            if (answerSubmitted) return;
+
+            if (selectedOptionButton) {
+                selectedOptionButton.classList.remove('selected');
+            }
+            selectedOptionButton = button;
+            selectedOptionButton.classList.add('selected');
+            submitBtn.disabled = false;
+        }
+
+        /**
+         * Handles the submission of an answer.
+         */
+        function handleSubmit() {
+            if (!selectedOptionButton || answerSubmitted) return;
+
+            answerSubmitted = true;
+            const currentQuestion = quizData[currentQuestionIndex];
+            const selectedAnswerIndex = parseInt(selectedOptionButton.dataset.index);
+
+            const isCorrect = selectedAnswerIndex === currentQuestion.answerIndex;
+
+            feedbackAreaEl.innerHTML = ''; // Clear previous feedback before adding new
+
+            if (isCorrect) {
+                score++;
+                scoreDisplayEl.textContent = `Score: ${score}`;
+                selectedOptionButton.classList.add('correct');
+                feedbackAreaEl.innerHTML = `<p class="font-semibold">Correct!</p>`;
+                feedbackAreaEl.classList.add('correct');
+            } else {
+                selectedOptionButton.classList.add('incorrect');
+                // Highlight the correct answer
+                optionsContainerEl.childNodes[currentQuestion.answerIndex].classList.add('correct');
+                feedbackAreaEl.innerHTML = `<p class="font-semibold">Incorrect!</p>`;
+                feedbackAreaEl.classList.add('incorrect');
+            }
+
+            const rationaleEl = document.createElement('p');
+            rationaleEl.classList.add('rationale');
+            rationaleEl.innerHTML = `<strong>Rationale:</strong> ${currentQuestion.rationale}`;
+            feedbackAreaEl.appendChild(rationaleEl);
+
+            // Disable all option buttons after submission
+            optionsContainerEl.childNodes.forEach(btn => btn.disabled = true);
+
+
+            submitBtn.classList.add('hidden');
+            nextBtn.classList.remove('hidden');
+        }
+
+        /**
+         * Moves to the next question or shows results if quiz is over.
+         */
+        function handleNext() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        /**
+         * Displays the final quiz results.
+         */
+        function showResults() {
+            quizHeader.classList.add('hidden');
+            questionAreaEl.classList.add('hidden');
+            optionsContainerEl.classList.add('hidden');
+            feedbackAreaEl.classList.add('hidden');
+            submitBtn.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            document.getElementById('progress-bar-container').classList.add('hidden');
+
+
+            resultsAreaEl.classList.remove('hidden');
+            finalScoreEl.textContent = `Your final score is: ${score} out of ${quizData.length}`;
+            const percentage = ((score / quizData.length) * 100).toFixed(1);
+            finalPercentageEl.textContent = `Percentage: ${percentage}%`;
+        }
+
+        /**
+         * Resets the quiz to its initial state and starts over.
+         */
+        function restartQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            answerSubmitted = false;
+            selectedOptionButton = null;
+
+            scoreDisplayEl.textContent = `Score: 0`;
+            resultsAreaEl.classList.add('hidden');
+            quizHeader.classList.remove('hidden');
+            questionAreaEl.classList.remove('hidden');
+            optionsContainerEl.classList.remove('hidden');
+            feedbackAreaEl.classList.remove('hidden');
+            feedbackAreaEl.innerHTML = '';
+            feedbackAreaEl.className = 'feedback mt-6';
+            document.getElementById('progress-bar-container').classList.remove('hidden');
+
+
+            shuffleArray(quizData); // Optionally shuffle questions for a new experience
+            loadQuestion();
+        }
+
+        /**
+         * Updates the progress bar.
+         */
+        function updateProgressBar() {
+            const progress = ((currentQuestionIndex + 1) / quizData.length) * 100;
+            progressBarEl.style.width = `${progress}%`;
+        }
+
+        // --- Event Listeners ---
+        submitBtn.addEventListener('click', handleSubmit);
+        nextBtn.addEventListener('click', handleNext);
+        restartBtn.addEventListener('click', restartQuiz);
+
+        // --- Initial Load ---
+        shuffleArray(quizData); // Shuffle questions at the start
+        loadQuestion();
+    </script>
+</body>
+</html>
